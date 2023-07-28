@@ -1,6 +1,6 @@
 # gpt-chat-semiautomation
 
-### Tools for semi-automating interaction with OpenAI's chat completion API.
+### Tools for semi-automating interaction with OpenAI's chat completion API
 
 An abstraction layer of building blocks on top of the existing API to simplify automating the conversation.
 
