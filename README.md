@@ -20,6 +20,10 @@ An abstraction layer of building blocks on top of the existing API to simplify a
 - Follow the conversation pattern of ChatGPT
 - Extensible enough to add new conversation types and response types
 
+### Limitations
+- No decent error handling yet
+- As you can't always predict the output from LLMs, desired response formats can never be guaranteed
+
 ### Getting started
 
 *The best way to get s*tarted is looking in the `examples` folder. These demonstrate different use cases and

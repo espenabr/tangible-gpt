@@ -23,7 +23,7 @@ object FollowUpQuestionsWithYesNoAnswers extends IOApp {
                              )
         answers           <- collectAnswers(followupQuestions.questions)
         conclusion        <- interactions.submitAnswersToQuestionsFromGpt("", answers, followupQuestions.history, booleanResponseHandler)
-        _                 <- Console[IO].println(conclusion.rawMessage)
+        _                 <- Console[IO].println(conclusion.value.get)
       } yield ExitCode.Success
     }
 

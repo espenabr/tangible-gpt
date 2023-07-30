@@ -15,7 +15,7 @@ object ExpectedListResponse extends IOApp {
         for {
           input  <- prompt("Ask for something listable")
           answer <- interactions.chatExpectingList(input, None)
-          _      <- Console[IO].println(answer.value)
+          _      <- Console[IO].println(answer.value.get)
         } yield ExitCode.Success
       }
 
