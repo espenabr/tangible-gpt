@@ -1,8 +1,7 @@
 package xf
 
-import xf.CustomTypes.SingleChoice
+import xf.model.SingleChoice
 
-import scala.util.Try
 import xf.model.ResponseHandler
 import cats.implicits.*
 import xf.model.Table
