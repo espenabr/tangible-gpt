@@ -13,6 +13,7 @@ import xf.Interactions.Model.QuestionFromGpt.{
   SingleChoiceQuestionFromGpt,
   TextQuestionFromGpt
 }
+import xf.model.{ChatResponse, ResponseHandler}
 import xf.Interactions.Model.ExpectedQuestion.{
   ExpectedBooleanQuestion,
   ExpectedMultipleChoiceQuestion,
@@ -22,22 +23,12 @@ import xf.Interactions.Model.ExpectedQuestion.{
 }
 import xf.Interactions.Model.{
   AnswerToQuestionFromGpt,
-  Cell,
-  ChatResponse,
-  Column,
-  Data,
-  ExpectedFormat,
   ExpectedQuestion,
   MessageExchange,
   QuestionFromGpt,
   QuestionsFromGptResponse,
-  Row,
-  SimpleChatResponse,
-  Table
+  SimpleChatResponse
 }
-import xf.Interactions.Model.Cell.{BooleanCell, NumberCell, SingleChoiceCell, TextCell}
-import xf.Interactions.Model.Data.{BooleanData, ListData, NumberData, ParseError, TableData, TextData}
-import xf.Interactions.Model.ExpectedFormat.{BooleanFormat, ListFormat, NumberFormat, TableFormat, TextFormat}
 import xf.Interactions.Model.AnswerToQuestionFromGpt.{
   AnswerToBooleanQuestionFromGpt,
   AnswerToMultipleChoiceQuestionFromGpt,
@@ -45,7 +36,7 @@ import xf.Interactions.Model.AnswerToQuestionFromGpt.{
   AnswerToSingleChoiceQuestionFromGpt,
   AnswerToTextQuestionFromQpt
 }
-import xf.Interactions.Model.Column.{BooleanColumn, NumberColumn, SingleChoiceColumn, TextColumn}
+import xf.ResponseHandlers.{booleanResponseHandler, doubleResponseHandler, listResponseHandler, tableResponseHandler}
 
 class Interactions[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
 
@@ -57,30 +48,44 @@ class Interactions[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
     }
   }
 
-  def chat(
+  def chat[A](
       message: String,
-      format: ExpectedFormat = TextFormat,
+      handler: ResponseHandler[A],
       history: List[MessageExchange] = List.empty
-  ): F[ChatResponse] = {
-    val formatDescription = format match
-      case TextFormat           => ""
-      case ListFormat(n)        => Prompting.specifyListFormat(n)
-      case BooleanFormat        => Prompting.specifyBooleanFormat
-      case NumberFormat         => Prompting.specifyNumberFormat
-      case TableFormat(columns) => Prompting.specifyTableFormat(columns)
-    end formatDescription
-
+  ): F[ChatResponse[A]] = {
     val prompt =
       s"""$message
          |
-         |$formatDescription""".stripMargin
+         |${handler.typePrompt}""".stripMargin
 
     simpleChat(prompt, history).map { response =>
-      val reply  = response.message
-      val parsed = parseMessage(reply, format)
-      ChatResponse(parsed, reply, history :+ MessageExchange(prompt, reply))
+      ChatResponse(
+        handler.parse(response.message),
+        response.message,
+        history :+ MessageExchange(prompt, response.message)
+      )
     }
   }
+
+  def chatExpectingNumber(message: String, history: List[MessageExchange] = List.empty): F[ChatResponse[Double]] =
+    chat(message, doubleResponseHandler, history)
+
+  def chatExpectingTable(
+      message: String,
+      columns: List[model.Table.Column],
+      history: List[MessageExchange] = List.empty
+  ): F[ChatResponse[model.Table]] =
+    chat(message, tableResponseHandler(columns), history)
+
+  def chatExpectingBoolean(message: String, history: List[MessageExchange] = List.empty): F[ChatResponse[Boolean]] =
+    chat(message, booleanResponseHandler, history)
+
+  def chatExpectingList(
+      message: String,
+      noOfOptions: Option[Int],
+      history: List[MessageExchange] = List.empty
+  ): F[ChatResponse[List[String]]] =
+    chat(message, listResponseHandler(noOfOptions), history)
 
   def requestQuestionsFromGpt(
       message: String,
@@ -161,93 +166,29 @@ class Interactions[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
   private def appendToHistory(history: List[MessageExchange], prompt: String): List[Message] =
     history.flatMap { m => Message(User, m.message) :: Message(Assistant, m.reply) :: Nil } :+ Message(User, prompt)
 
-  def submitAnswersToQuestionsFromGpt(
+  def submitAnswersToQuestionsFromGpt[A](
       message: String,
       answers: List[AnswerToQuestionFromGpt],
       history: List[MessageExchange],
-      format: ExpectedFormat = TextFormat
-  ): F[ChatResponse] = {
+      handler: ResponseHandler[A]
+  ): F[ChatResponse[A]] = {
     val describedAnswers = answers.map(describeAnswer).mkString("\n")
 
-    val formatDescription = format match
-      case TextFormat            => ""
-      case ListFormat(noOfItems) => Prompting.specifyListFormat(noOfItems)
-      case BooleanFormat         => Prompting.specifyBooleanFormat
-      case NumberFormat          => Prompting.specifyNumberFormat
-      case TableFormat(columns)  => Prompting.specifyTableFormat(columns)
-    end formatDescription
-
-    val prompt = format match
-      case TextFormat =>
-        s"""$describedAnswers
-           |
-           |$message""".stripMargin
-      case _          =>
-        s"""$describedAnswers
+    val prompt =
+      s"""$describedAnswers
            |
            |$message
            |
-           |$formatDescription""".stripMargin
-    end prompt
+           |${handler.typePrompt}""".stripMargin
 
     val messages = appendToHistory(history, prompt)
     gptApiClient.chatCompletions(messages).map { response =>
-      val reply  = latestMessage(response)
-      val parsed = parseMessage(reply, format)
-      ChatResponse(parsed, reply, history :+ MessageExchange(prompt, reply))
+      val reply = latestMessage(response)
+      ChatResponse[A](handler.parse(reply), reply, history :+ MessageExchange(prompt, reply))
     }
-  }
-
-  private def parseTable(message: String, columns: List[Column]): Option[Table] = {
-    val lines = message.split("\n").toList.filter(_.contains(";"))
-    val rows  = lines.map { line =>
-      val parts = line.split(";")
-      val cells = columns.indices.zip(columns).toList.map { case (index, column) =>
-        val part: String       = parts(index)
-        val cell: Option[Cell] = column match
-          case BooleanColumn(_)               => parseBoolean(part).map(p => BooleanCell(p, column))
-          case NumberColumn(_)                => parseNumber(part).map(n => NumberCell(n, column))
-          case TextColumn(_)                  => Some(TextCell(part, column))
-          case SingleChoiceColumn(_, options) =>
-            parseSingleChoice(part, options).map(s => SingleChoiceCell(s, column))
-        end cell
-        cell
-      }
-      if cells.forall(_.isDefined) then Some(Row(cells.flatMap(_.toList))) else None
-    }
-
-    if rows.forall(_.isDefined) then Some(Table(columns, rows.flatMap(_.toList))) else None
-  }
-
-  private def parseMessage(message: String, format: ExpectedFormat): Data = format match {
-    case TextFormat           => TextData(message)
-    case ListFormat(_)        => ListData(parseList(message))
-    case BooleanFormat        => parseBoolean(message).map(b => BooleanData(b)).getOrElse { ParseError }
-    case NumberFormat         =>
-      parseNumber(message) match
-        case Some(value) => NumberData(value)
-        case None        => ParseError
-      end match
-    case TableFormat(columns) =>
-      val table = parseTable(message, columns)
-      table match
-        case Some(t) => TableData(t)
-        case None    => ParseError
   }
 
   private def latestMessage(response: CompletionResponse) = response.choices.last.message.content
-
-  private def parseSingleChoice(s: String, options: List[String]): Option[String] = options.find(_ === s)
-
-  private def parseBoolean(s: String): Option[Boolean] = s.toLowerCase match {
-    case "false" | "no" | "n" | "0" => Some(false)
-    case "true" | "yes" | "y" | "1" => Some(true)
-    case _                          => None
-  }
-
-  private def parseNumber(s: String): Option[Double] = Try(s.strip().toDouble).toOption
-
-  private def parseList(s: String): List[String] = s.split("\n").toList
 
 }
 object Interactions {
@@ -280,21 +221,6 @@ object Interactions {
       case AnswerToSingleChoiceQuestionFromGpt(question: SingleChoiceQuestionFromGpt, answerIndex: Int)
       case AnswerToMultipleChoiceQuestionFromGpt(question: MultipleChoiceQuestionFromGpt, answerIndices: Set[Int])
 
-    enum ExpectedFormat:
-      case TextFormat
-      case ListFormat(noOfItems: Option[Int])
-      case BooleanFormat
-      case NumberFormat
-      case TableFormat(columns: List[Column])
-
-    enum Data:
-      case TextData(value: String)
-      case ListData(items: List[String])
-      case BooleanData(value: Boolean)
-      case NumberData(value: Double)
-      case TableData(table: Table)
-      case ParseError
-
     case class MessageExchange(
         message: String,
         reply: String
@@ -305,37 +231,10 @@ object Interactions {
         history: List[MessageExchange]
     )
 
-    case class ChatResponse(
-        data: Data,
-        rawMessage: String,
-        history: List[MessageExchange]
-    )
-
     case class QuestionsFromGptResponse(
         questions: List[QuestionFromGpt],
         rawMessage: String,
         history: List[MessageExchange]
-    )
-
-    enum Column:
-      case TextColumn(name: String)
-      case BooleanColumn(name: String)
-      case NumberColumn(name: String)
-      case SingleChoiceColumn(name: String, options: List[String])
-
-    enum Cell:
-      case TextCell(value: String, column: Column)
-      case BooleanCell(value: Boolean, column: Column)
-      case NumberCell(value: Double, column: Column)
-      case SingleChoiceCell(value: String, column: Column)
-
-    case class Table(
-        columns: List[Column],
-        rows: List[Row]
-    )
-
-    case class Row(
-        columns: List[Cell]
     )
 
   }

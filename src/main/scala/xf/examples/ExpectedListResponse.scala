@@ -5,7 +5,6 @@ import cats.effect.std.Console
 import xf.Interactions
 import xf.examples.Common.{clientResource, createConversationClient, extractKey}
 import xf.Input.prompt
-import xf.Interactions.Model.ExpectedFormat.ListFormat
 
 object ExpectedListResponse extends IOApp {
 
@@ -15,8 +14,8 @@ object ExpectedListResponse extends IOApp {
         val interactions = createConversationClient(client, extractKey(args))
         for {
           input  <- prompt("Ask for something listable")
-          answer <- interactions.chat(input, ListFormat(None))
-          _      <- Console[IO].println(answer)
+          answer <- interactions.chatExpectingList(input, None)
+          _      <- Console[IO].println(answer.value)
         } yield ExitCode.Success
       }
 

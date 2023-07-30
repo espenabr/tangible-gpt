@@ -4,11 +4,9 @@ import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import xf.Interactions
 import xf.Interactions.Model.ExpectedQuestion.ExpectedSingleChoiceQuestion
-import xf.Interactions.Model.ExpectedFormat.NumberFormat
-import xf.gpt.GptApiClient
 import xf.examples.Common.{clientResource, createConversationClient, extractKey}
-import xf.Input.{collectAnswers, prompt, readFileContent}
-import xf.Interactions.Model.Data.NumberData
+import xf.Input.{collectAnswers, prompt}
+import xf.ResponseHandlers.doubleResponseHandler
 
 object Quiz extends IOApp {
 
@@ -27,12 +25,9 @@ object Quiz extends IOApp {
                       "What was my score in percentage?",
                       answers,
                       response.history,
-                      NumberFormat
+                      doubleResponseHandler
                     )
-        _        <- Console[IO].println((result.data match {
-                      case NumberData(n) => Some(n)
-                      case _             => None
-                    }).getOrElse(""))
+        _        <- Console[IO].println(result.value.get)
       } yield ExitCode.Success
     }
 

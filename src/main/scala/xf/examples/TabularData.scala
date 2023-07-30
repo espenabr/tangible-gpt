@@ -4,12 +4,9 @@ import scala.util.Try
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import xf.examples.Common.{clientResource, createConversationClient, extractKey}
-import xf.Input.prompt
-import xf.Interactions.Model
-import xf.Interactions.Model.Cell.{BooleanCell, NumberCell, SingleChoiceCell, TextCell}
-import xf.Interactions.Model.ExpectedFormat.TableFormat
-import xf.Interactions.Model.{Cell, Column, Row, Table}
-import xf.Interactions.Model.Data.TableData
+import xf.model.Table.Cell.{BooleanCell, SingleChoiceCell, TextCell}
+import xf.model.Table.{Cell, Column, Row}
+import xf.model.Table
 
 object TabularData extends IOApp {
 
@@ -17,10 +14,8 @@ object TabularData extends IOApp {
     .use { client =>
       val interactions = createConversationClient(client, extractKey(args))
       for {
-        response  <- interactions.chat(description, TableFormat(tableColumns))
-        characters = response.data match
-                       case TableData(table) => table.rows.flatMap(toCharacter)
-                       case _                => List.empty
+        response  <- interactions.chatExpectingTable(description, tableColumns)
+        characters = response.value.get.rows.map(toCharacter)
         _         <- Console[IO].println(characters.mkString("\n"))
       } yield ExitCode.Success
     }

@@ -1,7 +1,7 @@
 package xf
 
-import xf.Interactions.Model.Column
-import xf.Interactions.Model.Column.*
+import xf.model.Table.Column
+import xf.model.Table.Column.{BooleanColumn, NumberColumn, SingleChoiceColumn, TextColumn}
 
 object Prompting {
 
@@ -29,50 +29,6 @@ object Prompting {
        |
        |I want nothing else in the response except these items.""".stripMargin
   }
-
-  def specifyListFormat(noOfItems: Option[Int]): String = {
-    val example = noOfItems match
-      case Some(n) => (1 to n).map(n => s"<item$n>").mkString("\n")
-      case None    => "<item1>\n<item2>\n<item3>\n..."
-    end example
-
-    s"""The response must be a list of items, one on each line.
-       |
-       |Example:
-       |$example
-       |
-       |I want nothing else in the response except these items.
-       |Also, I do not want any prefix numbers or other characters.""".stripMargin
-  }
-
-  def specifyTableFormat(columns: List[Column]): String = {
-    def describeColumn(c: Column) = c match {
-      case BooleanColumn(name)               => s"$name: Boolean (true or false)"
-      case NumberColumn(name)                => s"$name: Number (any number including decimal)"
-      case TextColumn(name)                  => s"$name: String"
-      case SingleChoiceColumn(name, options) => s"$name: One of the following values: ${options.mkString(", ")}"
-    }
-
-    def example(c: Column) = c match {
-      case BooleanColumn(_)               => "false"
-      case NumberColumn(_)                => "4216"
-      case TextColumn(_)                  => "Gordon Blue"
-      case SingleChoiceColumn(_, options) => options.head
-    }
-
-    s"""I need a table in csv format, using ; (semicolon as a separator. One row per line.
-       |
-       |${columns.map(describeColumn).mkString("\n")}
-       |
-       |Example:
-       |${columns.map(example).mkString(";")}
-       |
-       |I do not want any header row, and I want nothing else in the response except the table rows.""".stripMargin
-  }
-
-  val specifyBooleanFormat = """I only want a single "yes" or "no" answer. Nothing else."""
-
-  val specifyNumberFormat = "I only want a single number in the response. Nothing else."
 
   // Specification of questions from GPT
 

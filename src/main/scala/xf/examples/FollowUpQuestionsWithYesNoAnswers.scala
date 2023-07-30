@@ -7,6 +7,7 @@ import xf.examples.Common.{clientResource, createConversationClient, extractKey}
 import xf.Input.{collectAnswers, prompt}
 import cats.implicits.*
 import xf.Interactions.Model.ExpectedQuestion.ExpectedBooleanQuestion
+import xf.ResponseHandlers.booleanResponseHandler
 
 object FollowUpQuestionsWithYesNoAnswers extends IOApp {
 
@@ -21,7 +22,7 @@ object FollowUpQuestionsWithYesNoAnswers extends IOApp {
                                ExpectedBooleanQuestion
                              )
         answers           <- collectAnswers(followupQuestions.questions)
-        conclusion        <- interactions.submitAnswersToQuestionsFromGpt("", answers, followupQuestions.history)
+        conclusion        <- interactions.submitAnswersToQuestionsFromGpt("", answers, followupQuestions.history, booleanResponseHandler)
         _                 <- Console[IO].println(conclusion.rawMessage)
       } yield ExitCode.Success
     }
