@@ -1,6 +1,5 @@
 package xf
 
-import scala.util.Try
 import xf.gpt.GptApiClient
 import GptApiClient.Model.*
 import cats.effect.Concurrent
@@ -13,7 +12,7 @@ import xf.Interactions.Model.QuestionFromGpt.{
   SingleChoiceQuestionFromGpt,
   TextQuestionFromGpt
 }
-import xf.model.{ChatResponse, ResponseHandler}
+import xf.model.{ChatResponse, RequestHandler, ResponseHandler}
 import xf.Interactions.Model.ExpectedQuestion.{
   ExpectedBooleanQuestion,
   ExpectedMultipleChoiceQuestion,
@@ -40,6 +39,8 @@ import xf.ResponseHandlers.{booleanResponseHandler, doubleResponseHandler, listR
 
 class Interactions[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
 
+  val RequestValuePlaceholder = "{{value}}"
+
   def simpleChat(message: String, history: List[MessageExchange] = List.empty): F[SimpleChatResponse] = {
     val messages = appendToHistory(history, message)
     gptApiClient.chatCompletions(messages).map { response =>
@@ -65,6 +66,24 @@ class Interactions[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
         history :+ MessageExchange(prompt, response.message)
       )
     }
+  }
+
+  def templatedChat[A, B](
+      message: String,
+      requestValue: A,
+      requestHandler: RequestHandler[A],
+      responseHandler: ResponseHandler[B],
+      history: List[MessageExchange] = List.empty
+  ): F[ChatResponse[B]] = {
+    val prompt: String =
+      if message.contains(RequestValuePlaceholder) then
+        message.replaceAll(RequestValuePlaceholder, requestHandler.serialize(requestValue))
+      else s"""$message
+           |
+           |Input:
+           |${requestHandler.serialize(requestValue)}""".stripMargin
+
+    chat(prompt, responseHandler, history)
   }
 
   def chatExpectingNumber(message: String, history: List[MessageExchange] = List.empty): F[ChatResponse[Double]] =

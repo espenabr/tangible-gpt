@@ -8,11 +8,11 @@ case class Table(
 )
 object Table {
 
-  enum Column:
-    case TextColumn(name: String)
-    case BooleanColumn(name: String)
-    case NumberColumn(name: String)
-    case SingleChoiceColumn(name: String, options: List[String])
+  enum Column(val name: String):
+    case TextColumn(override val name: String) extends Column(name)
+    case BooleanColumn(override val name: String) extends Column(name)
+    case NumberColumn(override val name: String) extends Column(name)
+    case SingleChoiceColumn(override val name: String, options: List[String]) extends Column(name)
 
   enum Cell:
     case TextCell(value: String, column: Column)
