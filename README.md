@@ -32,5 +32,5 @@ An abstraction layer of building blocks on top of the existing API to simplify a
 
 ### Getting started
 
-The best way to get s*tarted is looking in the `examples` folder. These demonstrate different use cases and
+The best way to get started is looking in the `examples` folder. These demonstrate different use cases and
 can hopefully serve as inspiration for what this can be used for.
