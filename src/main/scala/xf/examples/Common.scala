@@ -1,7 +1,7 @@
 package xf.examples
 
 import cats.effect.{IO, Resource}
-import xf.Interactions
+import xf.InteractionClient
 import xf.gpt.GptApiClient
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
@@ -12,8 +12,8 @@ object Common {
 
   implicit val logging: LoggerFactory[IO] = Slf4jFactory.create[IO]
 
-  def createConversationClient(client: Client[IO], apiKey: String): Interactions[IO] =
-    new Interactions[IO](new GptApiClient[IO](client, apiKey))
+  def createInteractionClient(client: Client[IO], apiKey: String): InteractionClient[IO] =
+    new InteractionClient[IO](new GptApiClient[IO](client, apiKey))
 
   def extractKey(args: List[String]): String =
     if args.nonEmpty && args.head.startsWith("sk-") then args.head

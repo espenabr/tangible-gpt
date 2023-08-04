@@ -2,7 +2,7 @@ package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import xf.examples.Common.{clientResource, createConversationClient, extractKey}
+import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
 import xf.interactionhandlers.ExpandTable.{addColumnToTableHandler, addRowToTableHandler, AddColumn, AddRow}
 import xf.interactionhandlers.ResponseAsTable.{tableHandler, TabularDataRequest}
 import xf.model.Table
@@ -15,9 +15,9 @@ object AddColumnToTable extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val interactions = createConversationClient(client, extractKey(args))
+      val ic = createInteractionClient(client, extractKey(args))
       for {
-        addedColumn <- interactions.chat(
+        addedColumn <- ic.chat(
                          AddColumn(
                            exampleTable,
                            NumberColumn("Average weight"),
@@ -26,7 +26,7 @@ object AddColumnToTable extends IOApp {
                          addColumnToTableHandler
                        )
         _           <- Console[IO].println("Added weight column:\n" + addedColumn.rawMessage)
-        addedRow    <- interactions.chat(
+        addedRow    <- ic.chat(
                          AddRow(addedColumn.value.get, "Sea Nettle"),
                          addRowToTableHandler
                        )
@@ -36,10 +36,9 @@ object AddColumnToTable extends IOApp {
 
   val seaAnimalColumn: TextColumn    = TextColumn("Sea animal")
   val typeColumn: SingleChoiceColumn = SingleChoiceColumn("Type", List("Fish", "Shellfish", "Jellyfish"))
-  val columns: List[TextCell]        = List(seaAnimalColumn, typeColumn)
 
   val exampleTable = Table(
-    columns,
+    List(seaAnimalColumn, typeColumn),
     List(
       Row(List(TextCell("Cod", seaAnimalColumn), SingleChoiceCell(typeColumn.options.head, typeColumn))),
       Row(List(TextCell("Salmon", seaAnimalColumn), SingleChoiceCell(typeColumn.options.head, typeColumn))),

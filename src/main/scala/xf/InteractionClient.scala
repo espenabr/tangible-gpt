@@ -7,7 +7,7 @@ import cats.implicits.*
 import GptApiClient.Model.Role.{Assistant, User}
 import xf.model.{ChatResponse, InteractionHandler, MessageExchange, SimpleChatResponse}
 
-class Interactions[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
+class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
 
   def chat[A, B](
       requestValue: A,
@@ -21,7 +21,7 @@ class Interactions[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
          |
          |${handler.responseFormatDescription(requestValue)}""".stripMargin
 
-    simpleChat(prompt, history).map { response =>
+    plainTextChat(prompt, history).map { response =>
       ChatResponse(
         handler.parse(requestValue, response.message),
         response.message,
@@ -30,7 +30,7 @@ class Interactions[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
     }
   }
 
-  def simpleChat(message: String, history: List[MessageExchange] = List.empty): F[SimpleChatResponse] = {
+  def plainTextChat(message: String, history: List[MessageExchange] = List.empty): F[SimpleChatResponse] = {
     val messages = appendToHistory(history, message)
     gptApiClient.chatCompletions(messages).map { response =>
       val reply = latestMessage(response)

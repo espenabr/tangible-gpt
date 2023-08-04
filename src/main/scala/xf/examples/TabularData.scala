@@ -3,7 +3,7 @@ package xf.examples
 import scala.util.Try
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import xf.examples.Common.{clientResource, createConversationClient, extractKey}
+import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
 import xf.interactionhandlers.ResponseAsTable.{tableHandler, TabularDataRequest}
 import xf.model.Table.Cell.{BooleanCell, SingleChoiceCell, TextCell}
 import xf.model.Table.{Cell, Column, Row}
@@ -18,9 +18,9 @@ object TabularData extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val interactions = createConversationClient(client, extractKey(args))
+      val ic = createInteractionClient(client, extractKey(args))
       for {
-        response  <- interactions.chat(
+        response  <- ic.chat(
                        TabularDataRequest("Characters from the Donald Duck & co. universe.", tableColumns),
                        tableHandler
                      )
