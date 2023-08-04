@@ -6,9 +6,7 @@ import org.http4s.client.Client
 import org.http4s.headers.{`Content-Type`, Authorization}
 import org.http4s.circe.*
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
-import org.http4s.EntityEncoder
 import io.circe.syntax.*
-import cats.Monad
 import cats.effect.Concurrent
 import GptApiClient.Model.*
 import GptApiClient.Model.Role.{Assistant, Function, System, User}
