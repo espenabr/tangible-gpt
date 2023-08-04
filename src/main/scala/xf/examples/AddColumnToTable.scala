@@ -34,10 +34,9 @@ object AddColumnToTable extends IOApp {
       } yield ExitCode.Success
     }
 
-  val seaAnimalColumn                = TextColumn("Sea animal")
+  val seaAnimalColumn: TextColumn    = TextColumn("Sea animal")
   val typeColumn: SingleChoiceColumn = SingleChoiceColumn("Type", List("Fish", "Shellfish", "Jellyfish"))
-
-  val columns = List(seaAnimalColumn, typeColumn)
+  val columns: List[TextCell]        = List(seaAnimalColumn, typeColumn)
 
   val exampleTable = Table(
     columns,
