@@ -37,15 +37,16 @@ object AddColumnToTable extends IOApp {
   val seaAnimalColumn: TextColumn    = TextColumn("Sea animal")
   val typeColumn: SingleChoiceColumn = SingleChoiceColumn("Type", List("Fish", "Shellfish", "Jellyfish"))
 
-  val exampleTable = Table(
-    List(seaAnimalColumn, typeColumn),
-    List(
-      Row(List(TextCell("Cod", seaAnimalColumn), SingleChoiceCell(typeColumn.options.head, typeColumn))),
-      Row(List(TextCell("Salmon", seaAnimalColumn), SingleChoiceCell(typeColumn.options.head, typeColumn))),
-      Row(List(TextCell("Crab", seaAnimalColumn), SingleChoiceCell(typeColumn.options(1), typeColumn))),
-      Row(List(TextCell("Lobster", seaAnimalColumn), SingleChoiceCell(typeColumn.options(1), typeColumn)))
+  val exampleTable: Table =
+    Table(
+      List(seaAnimalColumn, typeColumn),
+      List(
+        Row(List(TextCell("Cod", seaAnimalColumn), SingleChoiceCell(typeColumn.options.head, typeColumn))),
+        Row(List(TextCell("Salmon", seaAnimalColumn), SingleChoiceCell(typeColumn.options.head, typeColumn))),
+        Row(List(TextCell("Crab", seaAnimalColumn), SingleChoiceCell(typeColumn.options(1), typeColumn))),
+        Row(List(TextCell("Lobster", seaAnimalColumn), SingleChoiceCell(typeColumn.options(1), typeColumn)))
+      )
     )
-  )
 
   val tableColumns: List[Column] = List(
     Column.TextColumn("Name"),
