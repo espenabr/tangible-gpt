@@ -1,6 +1,6 @@
 package xf.model
 
-import Table.{Row, Column}
+import Table.{Column, Row}
 
 case class Table(
     columns: List[Column],
@@ -9,9 +9,9 @@ case class Table(
 object Table {
 
   enum Column(val name: String):
-    case TextColumn(override val name: String) extends Column(name)
-    case BooleanColumn(override val name: String) extends Column(name)
-    case NumberColumn(override val name: String) extends Column(name)
+    case TextColumn(override val name: String)                                extends Column(name)
+    case BooleanColumn(override val name: String)                             extends Column(name)
+    case NumberColumn(override val name: String)                              extends Column(name)
     case SingleChoiceColumn(override val name: String, options: List[String]) extends Column(name)
 
   enum Cell:

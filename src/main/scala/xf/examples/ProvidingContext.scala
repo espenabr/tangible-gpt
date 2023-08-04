@@ -8,12 +8,17 @@ import xf.examples.Chat
 
 object ProvidingContext extends IOApp {
 
+  /*
+   * Local files can be sent as context and utilized later in the conversation
+   */
+
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
       val interactions = createConversationClient(client, extractKey(args))
       for {
         context  <- readFileContent("README.md")
-        reply    <- interactions.provideContext(context, "Answer questions about it")
+        reply    <- interactions.simpleChat(s"""I will provide some information relevant for later.
+                                            |$context""")
         prompt   <- prompt("Ask questions about README.md")
         response <- interactions.simpleChat(prompt, reply.history)
         _        <- Console[IO].println(response.message)

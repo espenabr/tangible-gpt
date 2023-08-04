@@ -6,21 +6,19 @@ import scala.io.Source
 import cats.effect.std.Console
 import cats.effect.IO
 import cats.implicits.*
-import xf.Interactions.Model.QuestionFromGpt
-import xf.Interactions.Model.QuestionFromGpt.{
-  BooleanQuestionFromGpt,
-  MultipleChoiceQuestionFromGpt,
-  NumberQuestionFromGpt,
-  SingleChoiceQuestionFromGpt,
-  TextQuestionFromGpt
-}
-import xf.Interactions.Model.AnswerToQuestionFromGpt
-import xf.Interactions.Model.AnswerToQuestionFromGpt.{
+import xf.interactionhandlers.AnswerQuestions.AnswerToQuestionFromGpt
+import xf.interactionhandlers.AnswerQuestions.AnswerToQuestionFromGpt.{
   AnswerToBooleanQuestionFromGpt,
   AnswerToMultipleChoiceQuestionFromGpt,
-  AnswerToNumberQuestionFromGpt,
   AnswerToSingleChoiceQuestionFromGpt,
   AnswerToTextQuestionFromQpt
+}
+import xf.interactionhandlers.RequestQuestions.QuestionFromGpt
+import xf.interactionhandlers.RequestQuestions.QuestionFromGpt.{
+  BooleanQuestionFromGpt,
+  MultipleChoiceQuestionFromGpt,
+  SingleChoiceQuestionFromGpt,
+  TextQuestionFromGpt
 }
 
 object Input {
@@ -34,17 +32,23 @@ object Input {
   def collectAnswers(questionsFromGpt: List[QuestionFromGpt]): IO[List[AnswerToQuestionFromGpt]] =
     questionsFromGpt.map(collectAnswer).sequence
 
-  private def collectAnswer(questionFromGpt: QuestionFromGpt): IO[AnswerToQuestionFromGpt] = {
-    def formatOptions(options: List[String]) =
-      (1 to options.length).toList
-        .zip(options)
-        .map { case (index, option) => s"  $index) $option" }
-        .mkString("\n")
+  def collectSelectedItems(items: List[String]): IO[List[String]] =
+    for {
+      _         <- Console[IO].println(formatOptions(items))
+      input     <- prompt("Select those that apply")
+      selection <- requireSelectedIndicesInput(input, items.length)
+    } yield selection.map(i => items(i - 1)).toList
 
+  private def formatOptions(options: List[String]) =
+    (1 to options.length).toList
+      .zip(options)
+      .map { case (index, option) => s"  $index) $option" }
+      .mkString("\n")
+
+  private def collectAnswer(questionFromGpt: QuestionFromGpt): IO[AnswerToQuestionFromGpt] = {
     val question = questionFromGpt match {
       case BooleanQuestionFromGpt(_, question)                 => s"$question (y/n)"
       case TextQuestionFromGpt(_, question)                    => question
-      case NumberQuestionFromGpt(_, question)                  => s"$question (number)"
       case SingleChoiceQuestionFromGpt(_, question, options)   =>
         s"""$question (select one)
            |${formatOptions(options)}""".stripMargin
@@ -60,8 +64,6 @@ object Input {
                     Console[IO].readLine.flatMap(requireYesNoInput).map(i => AnswerToBooleanQuestionFromGpt(q, i))
                   case q: TextQuestionFromGpt           =>
                     Console[IO].readLine.map(i => AnswerToTextQuestionFromQpt(q, i))
-                  case q: NumberQuestionFromGpt         =>
-                    Console[IO].readLine.flatMap(requireNumericInput).map(d => AnswerToNumberQuestionFromGpt(q, d))
                   case q: SingleChoiceQuestionFromGpt   =>
                     Console[IO].readLine
                       .flatMap(l => requireSelectedIndexInput(l, q.options.length))
@@ -76,9 +78,9 @@ object Input {
 
   private def requireYesNoInput(input: String): IO[Boolean] =
     input.toLowerCase() match {
-      case "y" | "yes" => IO.pure(true)
-      case "n" | "no"  => IO.pure(false)
-      case _           =>
+      case "y" | "yes" | "true" => IO.pure(true)
+      case "n" | "no" | "false" => IO.pure(false)
+      case _                    =>
         for {
           retryInput   <- prompt("Please answer 'y' or 'n'")
           booleanInput <- requireYesNoInput(retryInput)
@@ -106,10 +108,10 @@ object Input {
     end match
 
   private def requireSelectedIndicesInput(input: String, maxIndex: Int): IO[Set[Int]] = {
-    val stripped = input.strip()
+    val stripped = input.split(",").toList.map(_.strip())
     if stripped.length === 0 then IO.pure(Set.empty)
     else
-      Try { stripped.split("[,\\s]").map(_.strip.toInt).toSet }.toEither match
+      Try { stripped.map(_.toInt).toSet }.toEither match
         case Right(indices) =>
           if indices.forall(_ < maxIndex) then IO.pure(indices)
           else requireSelectedIndicesInput(input, maxIndex)

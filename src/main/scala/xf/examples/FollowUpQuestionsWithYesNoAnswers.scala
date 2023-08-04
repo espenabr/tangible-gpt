@@ -2,28 +2,43 @@ package xf.examples
 
 import cats.effect.std.Console
 import cats.effect.{ExitCode, IO, IOApp}
-import org.http4s.client.Client
 import xf.examples.Common.{clientResource, createConversationClient, extractKey}
 import xf.Input.{collectAnswers, prompt}
 import cats.implicits.*
-import xf.Interactions.Model.ExpectedQuestion.ExpectedBooleanQuestion
-import xf.ResponseHandlers.booleanResponseHandler
+import xf.interactionhandlers.AnswerQuestions.answerQuestionsHandler
+import xf.interactionhandlers.RequestQuestions.QuestionType.YesNoQuestions
+import xf.interactionhandlers.RequestQuestions.{
+  requestFollowupQuestionsHandler,
+  QuestionExpectingFollowupQuestions,
+  QuestionType
+}
 
 object FollowUpQuestionsWithYesNoAnswers extends IOApp {
+
+  /*
+   * Flow:
+   *  1. User asks a question
+   *  2. GPT response with followup questions with the intention of giving a better answer
+   *  3. User answers followup questions
+   *  4. GPT gives a conclusive answer
+   */
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
       val interactions = createConversationClient(client, extractKey(args))
       for {
-        question          <- prompt("Ask a questions and get follow-up questions")
-        followupQuestions <- interactions.requestQuestionsFromGpt(
-                               s"""I have a question, to which I want you to ask me follow-up questions that can help
-                                  |you to give me a better answer. My question: $question""".stripMargin,
-                               ExpectedBooleanQuestion
-                             )
-        answers           <- collectAnswers(followupQuestions.questions)
-        conclusion        <- interactions.submitAnswersToQuestionsFromGpt("", answers, followupQuestions.history, booleanResponseHandler)
-        _                 <- Console[IO].println(conclusion.value.get)
+        question         <- prompt("Ask a questions and get follow-up questions")
+        questionsFromGpt <- interactions.chat(
+                              QuestionExpectingFollowupQuestions(question, YesNoQuestions, None),
+                              requestFollowupQuestionsHandler
+                            )
+        myAnswers        <- collectAnswers(questionsFromGpt.value.get)
+        answerFromGpt    <- interactions.chat(
+                              myAnswers,
+                              answerQuestionsHandler,
+                              questionsFromGpt.history
+                            )
+        _                <- Console[IO].println(s"${answerFromGpt.value.get}")
       } yield ExitCode.Success
     }
 

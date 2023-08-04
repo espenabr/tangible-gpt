@@ -25,8 +25,8 @@ An abstraction layer of building blocks on top of the existing API to simplify a
 
 ### Limitations
 
-- This is just an experiment. I have limited understanding of prompt engineering, and prompting the LLM in this rigid
-  ways might impact the results. With some luck it might be possible to extend this project to mitigate this
+- This is just an experiment. I have limited understanding of prompt engineering, and this elaborate prompting might
+  impact the quality of the results. With some luck it might be possible to extend this project to mitigate it
 - No decent error handling yet
 - As you can't always predict the output from LLMs, desired response formats can never be guaranteed
 

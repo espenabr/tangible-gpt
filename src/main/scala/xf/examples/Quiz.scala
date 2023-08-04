@@ -2,11 +2,12 @@ package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import xf.Interactions
-import xf.Interactions.Model.ExpectedQuestion.ExpectedSingleChoiceQuestion
 import xf.examples.Common.{clientResource, createConversationClient, extractKey}
 import xf.Input.{collectAnswers, prompt}
-import xf.ResponseHandlers.doubleResponseHandler
+import xf.interactionhandlers.RequestQuestions.{requestQuizQuestions, QuizRequest}
+import xf.interactionhandlers.RequestQuestions.QuestionType.{SingleChoiceQuestions, YesNoQuestions}
+import xf.interactionhandlers.AnswerQuestions.answerQuestionsHandler
+import xf.interactionhandlers.RequestQuestions.Difficulty.Medium
 
 object Quiz extends IOApp {
 
@@ -14,28 +15,13 @@ object Quiz extends IOApp {
     .use { client =>
       val interactions = createConversationClient(client, extractKey(args))
       for {
-        subject  <- prompt("Quiz subject")
-        response <- interactions.requestQuestionsFromGpt(
-                      description(subject),
-                      ExpectedSingleChoiceQuestion(Some(3)),
-                      Some(6)
-                    )
-        answers  <- collectAnswers(response.questions)
-        result   <- interactions.submitAnswersToQuestionsFromGpt(
-                      "What was my score in percentage?",
-                      answers,
-                      response.history,
-                      doubleResponseHandler
-                    )
-        _        <- Console[IO].println(result.value.get)
+        topic     <- prompt("Quiz topic")
+        questions <-
+          interactions.chat(QuizRequest(topic, Medium, SingleChoiceQuestions(Some(3)), Some(6)), requestQuizQuestions)
+        answers   <- collectAnswers(questions.value.get)
+        result    <- interactions.chat(answers, answerQuestionsHandler, questions.history)
+        _         <- Console[IO].println(s"${result.value.get}")
       } yield ExitCode.Success
     }
-
-  private def description(subject: String) =
-    s"""You are a quiz master and will ask me questions.
-       |Subject: $subject
-       |Difficulty: Medium
-       |
-       |Score me and congratulate me if I do well.""".stripMargin
 
 }

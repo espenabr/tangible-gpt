@@ -4,23 +4,30 @@ import scala.util.Try
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import xf.examples.Common.{clientResource, createConversationClient, extractKey}
+import xf.interactionhandlers.ResponseAsTable.{tableHandler, TabularDataRequest}
 import xf.model.Table.Cell.{BooleanCell, SingleChoiceCell, TextCell}
 import xf.model.Table.{Cell, Column, Row}
 import xf.model.Table
 
 object TabularData extends IOApp {
 
+  /*
+   * Ask for data in a tablular format with specific data types per column
+   * Also, example of how the Table type can be mapped to case classes
+   */
+
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
       val interactions = createConversationClient(client, extractKey(args))
       for {
-        response  <- interactions.chatExpectingTable(description, tableColumns)
+        response  <- interactions.chat(
+                       TabularDataRequest("Characters from the Donald Duck & co. universe.", tableColumns),
+                       tableHandler
+                     )
         characters = response.value.get.rows.map(toCharacter)
         _         <- Console[IO].println(characters.mkString("\n"))
       } yield ExitCode.Success
     }
-
-  val description = "Characters from the Donald Duck & co. universe."
 
   val tableColumns: List[Column] = List(
     Column.TextColumn("Name"),
