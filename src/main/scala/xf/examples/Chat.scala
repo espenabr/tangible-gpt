@@ -2,10 +2,8 @@ package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import org.http4s.ember.client.EmberClientBuilder
 import xf.InteractionClient
-import xf.model.{MessageExchange, SimpleChatResponse}
-import xf.gpt.GptApiClient
+import xf.model.MessageExchange
 import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
 import xf.Input.prompt
 

@@ -10,6 +10,7 @@ import io.circe.syntax.*
 import cats.effect.Concurrent
 import GptApiClient.Model.*
 import GptApiClient.Model.Role.{Assistant, Function, System, User}
+import xf.gpt.GptApiClient.Model.Property.{EnumParameter, IntParameter, StringParameter}
 
 class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String) {
 
@@ -17,8 +18,8 @@ class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String) {
 
   given EntityDecoder[F, CompletionResponse] = jsonOf[F, CompletionResponse]
 
-  def chatCompletions(messages: List[Message]): F[CompletionResponse] = {
-    val body = CompletionRequest("gpt-3.5-turbo", messages) // gpt-4 also works
+  def chatCompletions(messages: List[Message], tools: Option[List[Tool]] = None): F[CompletionResponse] =
+    val body = CompletionRequest("gpt-4", messages, None) // gpt-4 also works
 
     val request = Request[F](
       method = Method.POST,
@@ -31,7 +32,7 @@ class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String) {
     )
 
     client.expect[CompletionResponse](request)
-  }
+
 }
 object GptApiClient {
   object Model {
@@ -84,22 +85,130 @@ object GptApiClient {
 
     case class CompletionRequest(
         model: String,
-        messages: List[Message]
+        messages: List[Message],
+        tools: Option[List[Tool]]
     )
 
     object CompletionRequest {
       given Encoder[CompletionRequest] = Encoder { r =>
         Json.obj(
           "model"    := r.model,
-          "messages" := r.messages
+          "messages" := r.messages,
+          "tools"    := r.tools
         )
       }
     }
 
+    enum Property:
+      case StringParameter(description: String)
+      case EnumParameter(description: String, _enum: List[String])
+      case IntParameter(description: String)
+
+    case class Parameters(
+        properties: Map[String, Property],
+        required: List[String]
+    )
+    object Parameters:
+      given Encoder[Map[String, Property]] = Encoder.instance { map =>
+        Json.obj(map.map { case (key, value) =>
+          key -> value.asJson(propertyEncoder)
+        }.toSeq: _*)
+      }
+
+      given Encoder[Parameters] = Encoder { p =>
+        Json.obj(
+          "type"       := "object",
+          "properties" := p.properties
+        )
+      }
+
+    val propertyEncoder: Encoder[Property] = Encoder.instance {
+      case StringParameter(description)      =>
+        Json.obj(
+          "type"        := "string",
+          "description" := description
+        )
+      case EnumParameter(description, _enum) =>
+        Json.obj(
+          "type"        := "string",
+          "description" := description,
+          "num"         := _enum
+        )
+      case IntParameter(description)         =>
+        Json.obj(
+          "type"        := "int",
+          "description" := description
+        )
+    }
+
+    case class ToolFunction(
+        name: String,
+        description: Option[String],
+        parameters: Parameters
+    )
+    object ToolFunction:
+      given Encoder[Property]     = propertyEncoder
+      given Encoder[ToolFunction] = Encoder { f =>
+        Json.obj(
+          "name"        := f.name,
+          "description" := f.description,
+          "parameters"  := f.parameters
+        )
+      }
+
+    case class Tool(
+        function: ToolFunction
+    )
+    object Tool:
+      given Encoder[Tool] = Encoder { t =>
+        Json.obj(
+          "type"     := "function",
+          "function" := t.function
+        )
+      }
+
+    /*
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_current_weather",
+        "description": "Get the current weather in a given location",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string",
+              "description": "The city and state, e.g. San Francisco, CA"
+            },
+            "unit": {
+              "type": "string",
+              "enum": ["celsius", "fahrenheit"]
+            }
+          },
+          "required": ["location"]
+        }
+      }
+    }
+  ],
+     */
+
+    enum FinishReason:
+      case Stop, ToolCalls
+
+    object FinishReason:
+      def toEnum(s: String): Option[FinishReason] =
+        Option(s) collect {
+          case "stop" => Stop
+          case "tool_calls" => ToolCalls
+        }
+
+      given Decoder[FinishReason] = Decoder.decodeString.map(s => FinishReason.toEnum(s).get)
+
     case class Choice(
         index: Int,
         message: Message,
-        finishReason: String
+        finishReason: FinishReason
     )
 
     object Choice {
@@ -107,7 +216,7 @@ object GptApiClient {
         for {
           index        <- c.downField("index").as[Int]
           message      <- c.downField("message").as[Message]
-          finishReason <- c.downField("finish_reason").as[String]
+          finishReason <- c.downField("finish_reason").as[FinishReason]
         } yield Choice(index, message, finishReason)
       }
     }
