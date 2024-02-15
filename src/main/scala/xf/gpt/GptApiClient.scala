@@ -8,9 +8,10 @@ import org.http4s.circe.*
 import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 import io.circe.syntax.*
 import cats.effect.Concurrent
-import GptApiClient.Model.*
-import GptApiClient.Model.Role.{Assistant, Function, System, User}
-import xf.gpt.GptApiClient.Model.Property.{EnumParameter, IntParameter, StringParameter}
+import xf.gpt.GptApiClient.Common.Role
+import xf.gpt.GptApiClient.Request.{CompletionRequest, Message, Tool}
+import xf.gpt.GptApiClient.Request.Property.{EnumProperty, IntegerProperty, StringProperty}
+import xf.gpt.GptApiClient.Response.FinishReason.CompletionResponse
 
 class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String) {
 
@@ -35,120 +36,48 @@ class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String) {
 
 }
 object GptApiClient {
-  object Model {
+
+  object Common:
     enum Role:
       case System, User, Assistant, Function
 
-    case class Message(
-        role: Role,
-        content: String
-    )
-
-    object Message {
-      given Encoder[Role] = Encoder.encodeString.contramap {
-        case System    => "system"
-        case Assistant => "assistant"
-        case User      => "user"
-        case Function  => "function"
-      }
-
-      private def parseRole(s: String): Either[String, Role] =
-        s match {
-          case "system"    => Right(System)
-          case "assistant" => Right(Assistant)
-          case "user"      => Right(User)
-          case "function"  => Right(Function)
-          case _           => Left(s"Could not decode $s as Role")
-        }
-
-      given Decoder[Role] = Decoder { c =>
-        for {
-          str  <- c.as[String]
-          role <- parseRole(str).left.map(DecodingFailure(_, c.history))
-        } yield role
-      }
-
-      given Encoder[Message] = Encoder { m =>
-        Json.obj(
-          "role"    := m.role,
-          "content" := m.content
-        )
-      }
-
-      given Decoder[Message] = Decoder { c =>
-        for {
-          role    <- c.downField("role").as[Role]
-          content <- c.downField("content").as[String]
-        } yield Message(role, content)
-      }
+    given Encoder[Role] = Encoder.encodeString.contramap {
+      case Role.System    => "system"
+      case Role.Assistant => "assistant"
+      case Role.User      => "user"
+      case Role.Function  => "function"
     }
 
-    case class CompletionRequest(
-        model: String,
-        messages: List[Message],
-        tools: Option[List[Tool]]
-    )
-
-    object CompletionRequest {
-      given Encoder[CompletionRequest] = Encoder { r =>
-        Json.obj(
-          "model"    := r.model,
-          "messages" := r.messages,
-          "tools"    := r.tools
-        )
+    def parseRole(s: String): Either[String, Role] =
+      s match {
+        case "system"    => Right(Role.System)
+        case "assistant" => Right(Role.Assistant)
+        case "user"      => Right(Role.User)
+        case "function"  => Right(Role.Function)
+        case _           => Left(s"Could not decode $s as Role")
       }
+
+    given Decoder[Role] = Decoder { c =>
+      for {
+        str  <- c.as[String]
+        role <- parseRole(str).left.map(DecodingFailure(_, c.history))
+      } yield role
     }
 
-    enum Property:
-      case StringParameter(description: String)
-      case EnumParameter(description: String, _enum: List[String])
-      case IntParameter(description: String)
+  // =======================================================================================
 
-    case class Parameters(
-        properties: Map[String, Property],
-        required: List[String]
-    )
-    object Parameters:
-      given Encoder[Map[String, Property]] = Encoder.instance { map =>
-        Json.obj(map.map { case (key, value) =>
-          key -> value.asJson(propertyEncoder)
-        }.toSeq: _*)
-      }
-
-      given Encoder[Parameters] = Encoder { p =>
-        Json.obj(
-          "type"       := "object",
-          "properties" := p.properties
-        )
-      }
-
-    val propertyEncoder: Encoder[Property] = Encoder.instance {
-      case StringParameter(description)      =>
-        Json.obj(
-          "type"        := "string",
-          "description" := description
-        )
-      case EnumParameter(description, _enum) =>
-        Json.obj(
-          "type"        := "string",
-          "description" := description,
-          "num"         := _enum
-        )
-      case IntParameter(description)         =>
-        Json.obj(
-          "type"        := "int",
-          "description" := description
-        )
+  object Request:
+    case class Message(role: Common.Role, content: String)
+    given Encoder[Message] = Encoder { m =>
+      Json.obj(
+        "role"    := m.role,
+        "content" := m.content
+      )
     }
 
-    case class ToolFunction(
-        name: String,
-        description: Option[String],
-        parameters: Parameters
-    )
-    object ToolFunction:
-      given Encoder[Property]     = propertyEncoder
-      given Encoder[ToolFunction] = Encoder { f =>
+    case class RequestFunction(name: String, description: Option[String], parameters: Parameters)
+    object RequestFunction:
+      given Encoder[RequestFunction] = Encoder { f =>
         Json.obj(
           "name"        := f.name,
           "description" := f.description,
@@ -156,9 +85,28 @@ object GptApiClient {
         )
       }
 
-    case class Tool(
-        function: ToolFunction
-    )
+    val propertyEncoder: Encoder[Property] = Encoder.instance {
+      case StringProperty(description)      =>
+        Json.obj(
+          "type"        := "string",
+          "description" := description
+        )
+      case EnumProperty(description, _enum) =>
+        Json.obj(
+          "type"        := "string",
+          "description" := description,
+          "num"         := _enum
+        )
+      case IntegerProperty(description)     =>
+        Json.obj(
+          "type"        := "integer",
+          "description" := description
+        )
+    }
+
+    given Encoder[Property] = propertyEncoder
+
+    case class Tool(function: RequestFunction)
     object Tool:
       given Encoder[Tool] = Encoder { t =>
         Json.obj(
@@ -167,93 +115,126 @@ object GptApiClient {
         )
       }
 
-    /*
-  "tools": [
-    {
-      "type": "function",
-      "function": {
-        "name": "get_current_weather",
-        "description": "Get the current weather in a given location",
-        "parameters": {
-          "type": "object",
-          "properties": {
-            "location": {
-              "type": "string",
-              "description": "The city and state, e.g. San Francisco, CA"
-            },
-            "unit": {
-              "type": "string",
-              "enum": ["celsius", "fahrenheit"]
-            }
-          },
-          "required": ["location"]
-        }
-      }
-    }
-  ],
-     */
+    enum Property:
+      case StringProperty(description: String)
+      case EnumProperty(description: String, _enum: List[String])
+      case IntegerProperty(description: String)
 
+    case class Parameters(properties: Map[String, Property], required: List[String])
+    object Parameters:
+      given Encoder[Map[String, Property]] = Encoder.instance { map =>
+        Json.obj(map.map { case (key, value) =>
+          key -> value.asJson(propertyEncoder)
+        }.toSeq: _*)
+      }
+      given Encoder[Parameters]            = Encoder { p =>
+        Json.obj(
+          "type"       := "object",
+          "properties" := p.properties
+        )
+      }
+
+    case class CompletionRequest(model: String, messages: List[Message], tools: Option[List[Tool]])
+    object CompletionRequest:
+      given Encoder[CompletionRequest] = Encoder { r =>
+        Json.obj(
+          "model"    := r.model,
+          "messages" := r.messages,
+          "tools"    := r.tools
+        )
+      }
+
+  // =======================================================================================
+
+  object Response:
     enum FinishReason:
       case Stop, ToolCalls
-
     object FinishReason:
       def toEnum(s: String): Option[FinishReason] =
         Option(s) collect {
-          case "stop" => Stop
+          case "stop"       => Stop
           case "tool_calls" => ToolCalls
         }
+      given Decoder[FinishReason]                 = Decoder.decodeString.map(s => FinishReason.toEnum(s).get)
 
-      given Decoder[FinishReason] = Decoder.decodeString.map(s => FinishReason.toEnum(s).get)
+      case class CompletionResponse(id: String, model: String, choices: List[Choice], usage: Usage)
+      object CompletionResponse:
+        given Decoder[CompletionResponse] = Decoder { c =>
+          for {
+            id      <- c.downField("id").as[String]
+            model   <- c.downField("model").as[String]
+            choices <- c.downField("choices").as[List[Choice]]
+            usage   <- c.downField("usage").as[Usage]
+          } yield CompletionResponse(id, model, choices, usage)
+        }
 
-    case class Choice(
-        index: Int,
-        message: Message,
-        finishReason: FinishReason
-    )
+      case class ToolCallFunction(name: String, arguments: String) // TODO Json must be decoded
+      object ToolCallFunction:
+        given Decoder[ToolCallFunction] = Decoder { c =>
+          for
+            name      <- c.downField("name").as[String]
+            arguments <- c.downField("arguments").as[String]
+          yield ToolCallFunction(name, arguments)
+        }
 
-    object Choice {
-      given Decoder[Choice] = Decoder { c =>
-        for {
-          index        <- c.downField("index").as[Int]
-          message      <- c.downField("message").as[Message]
-          finishReason <- c.downField("finish_reason").as[FinishReason]
-        } yield Choice(index, message, finishReason)
+      case class ToolCall(id: String, function: ToolCallFunction)
+      object ToolCall:
+        given Decoder[ToolCall] = Decoder { c =>
+          for
+            id       <- c.downField("id").as[String]
+            function <- c.downField("function").as[ToolCallFunction]
+          yield ToolCall(id, function)
+        }
+
+      case class ResponseMessage(role: Role, content: String)
+      object ResponseMessage:
+        given Decoder[ResponseMessage] = Decoder { c =>
+          for
+            role    <- c.downField("role").as[Role]
+            content <- c.downField("content").as[String]
+          yield ResponseMessage(role, content)
+        }
+
+      case class ToolCallsMessage(role: Role, toolCalls: List[ToolCall])
+      object ToolCallsMessage:
+        given Decoder[ToolCallsMessage] = Decoder { c =>
+          for
+            role      <- c.downField("role").as[Role]
+            toolCalls <- c.downField("tool_calls").as[List[ToolCall]]
+          yield ToolCallsMessage(role, toolCalls)
+        }
+
+      case class Usage(promptTokens: Int, completionTokens: Int, totalTokens: Int)
+      object Usage {
+        given Decoder[Usage] = Decoder { c =>
+          for {
+            promptTokens     <- c.downField("prompt_tokens").as[Int]
+            completionTokens <- c.downField("completion_tokens").as[Int]
+            totalTokens      <- c.downField("total_tokens").as[Int]
+          } yield Usage(promptTokens, completionTokens, totalTokens)
+        }
       }
-    }
 
-    case class Usage(
-        promptTokens: Int,
-        completionTokens: Int,
-        totalTokens: Int
-    )
+      enum Choice:
+        case StopChoice(index: Int, message: ResponseMessage, finishReason: FinishReason)
+        case ToolCallsChoice(index: Int, message: ToolCallsMessage, finishReason: FinishReason)
 
-    object Usage {
-      given Decoder[Usage] = Decoder { c =>
-        for {
-          promptTokens     <- c.downField("prompt_tokens").as[Int]
-          completionTokens <- c.downField("completion_tokens").as[Int]
-          totalTokens      <- c.downField("total_tokens").as[Int]
-        } yield Usage(promptTokens, completionTokens, totalTokens)
-      }
-    }
+      object Choice:
+        given Decoder[Choice] = Decoder.instance { c =>
+          c.get[FinishReason]("finish_reason").flatMap {
+            case Stop      =>
+              for
+                index        <- c.downField("index").as[Int]
+                message      <- c.downField("message").as[ResponseMessage]
+                finishReason <- c.downField("finish_reason").as[FinishReason]
+              yield StopChoice(index, message, finishReason)
+            case ToolCalls =>
+              for
+                index        <- c.downField("index").as[Int]
+                message      <- c.downField("message").as[ToolCallsMessage]
+                finishReason <- c.downField("finish_reason").as[FinishReason]
+              yield ToolCallsChoice(index, message, finishReason)
+          }
+        }
 
-    case class CompletionResponse(
-        id: String,
-        model: String,
-        choices: List[Choice],
-        usage: Usage
-    )
-
-    object CompletionResponse {
-      given Decoder[CompletionResponse] = Decoder { c =>
-        for {
-          id      <- c.downField("id").as[String]
-          model   <- c.downField("model").as[String]
-          choices <- c.downField("choices").as[List[Choice]]
-          usage   <- c.downField("usage").as[Usage]
-        } yield CompletionResponse(id, model, choices, usage)
-      }
-    }
-
-  }
 }

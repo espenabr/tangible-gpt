@@ -1,10 +1,12 @@
 package xf
 
 import xf.gpt.GptApiClient
-import GptApiClient.Model.*
 import cats.effect.Concurrent
 import cats.implicits.*
-import GptApiClient.Model.Role.{Assistant, User}
+import xf.gpt.GptApiClient.Common.Role.{Assistant, User}
+import xf.gpt.GptApiClient.Request.Message
+import xf.gpt.GptApiClient.Response.FinishReason.Choice.StopChoice
+import xf.gpt.GptApiClient.Response.FinishReason.CompletionResponse
 import xf.model.{ChatResponse, InteractionHandler, MessageExchange, SimpleChatResponse}
 
 class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
@@ -41,6 +43,8 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
   private def appendToHistory(history: List[MessageExchange], prompt: String): List[Message] =
     history.flatMap { m => Message(User, m.message) :: Message(Assistant, m.reply) :: Nil } :+ Message(User, prompt)
 
-  private def latestMessage(response: CompletionResponse) = response.choices.last.message.content
+  private def latestMessage(response: CompletionResponse) = response.choices.last match
+    case StopChoice(_, message, _) => message.content
+    case _                         => ""
 
 }
