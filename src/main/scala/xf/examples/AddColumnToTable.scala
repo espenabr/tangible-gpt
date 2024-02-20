@@ -21,7 +21,7 @@ object AddColumnToTable extends IOApp {
                          AddColumn(
                            exampleTable,
                            NumberColumn("Average weight"),
-                           "Average weight (kg"
+                           "Average weight (kg)"
                          ),
                          addColumnToTableHandler
                        )

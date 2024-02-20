@@ -7,12 +7,16 @@ import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.Slf4jFactory
+import xf.model.FunctionCall
 
 object Common {
 
   implicit val logging: LoggerFactory[IO] = Slf4jFactory.create[IO]
 
-  def createInteractionClient(client: Client[IO], apiKey: String): InteractionClient[IO] =
+  def createInteractionClient(
+      client: Client[IO],
+      apiKey: String
+  ): InteractionClient[IO] =
     new InteractionClient[IO](new GptApiClient[IO](client, apiKey))
 
   def extractKey(args: List[String]): String =

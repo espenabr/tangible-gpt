@@ -16,8 +16,7 @@ object Quiz extends IOApp {
       val ic = createInteractionClient(client, extractKey(args))
       for {
         topic     <- prompt("Quiz topic")
-        questions <-
-          ic.chat(QuizRequest(topic, Medium, SingleChoiceQuestions(Some(3)), Some(6)), requestQuizQuestions)
+        questions <- ic.chat(QuizRequest(topic, Medium, SingleChoiceQuestions(Some(3)), Some(6)), requestQuizQuestions)
         answers   <- collectAnswers(questions.value.get)
         result    <- ic.chat(answers, answerQuestionsHandler, questions.history)
         _         <- Console[IO].println(s"${result.value.get}")
