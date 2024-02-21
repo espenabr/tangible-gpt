@@ -1,24 +1,25 @@
 package xf
 
 import xf.gpt.GptApiClient
-import cats.effect.{Concurrent, Sync}
+import cats.effect.Concurrent
 import cats.implicits.*
 import xf.gpt.GptApiClient.Common.{Message, Role}
 import xf.gpt.GptApiClient.Common.Message.{ContentMessage, ResultFromToolMessage, ToolCallsMessage}
-import xf.gpt.GptApiClient.Common.Role.{Assistant, User}
+import xf.gpt.GptApiClient.Common.Role.User
 import xf.gpt.GptApiClient.Request.Property.{EnumProperty, IntegerProperty, StringProperty}
 import xf.gpt.GptApiClient.Request.{Parameters, Property, RequestFunction, Tool}
 import xf.gpt.GptApiClient.Response.FinishReason
 import xf.gpt.GptApiClient.Response.FinishReason.Choice.{StopChoice, ToolCallsChoice}
 import xf.gpt.GptApiClient.Response.FinishReason.CompletionResponse
 import xf.model.Param.{EnumParam, IntegerParam, StringParam}
-import xf.model.{ChatResponse, FunctionCall, InteractionHandler, MessageExchange, SimpleChatResponse}
+import xf.model.{ChatResponse, FunctionCall, InteractionHandler, SimpleChatResponse}
 
 class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
 
   def chat[A, B](
       requestValue: A,
       handler: InteractionHandler[A, B],
+      functionCalls: List[FunctionCall] = List.empty,
       history: List[Message] = List.empty
   ): F[ChatResponse[B]] =
     val prompt =
@@ -28,39 +29,27 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
          |
          |${handler.responseFormatDescription(requestValue)}""".stripMargin
 
-    plainTextChat(userContentMessage(prompt), history).map { response =>
-      ChatResponse(
-        handler.parse(requestValue, response.message.content),
-        response.message.content,
-        history :+ userContentMessage(prompt) :+ response.message
-      )
-    }
+    if functionCalls.isEmpty then
+      plainTextChat(userContentMessage(prompt), history).map { response =>
+        ChatResponse(
+          handler.parse(requestValue, response.message.content),
+          response.message.content,
+          history :+ userContentMessage(prompt) :+ response.message
+        )
+      }
+    else
+      chatWithFunctionCalls(ContentMessage(User, prompt), functionCalls, history).map { response =>
+        val messageContent = response.message match
+          case ContentMessage(_, c)              => c
+          case ToolCallsMessage(_, _)            => ""
+          case ResultFromToolMessage(_, n, c, _) => c
+
+        ChatResponse(handler.parse(requestValue, messageContent), messageContent, response.history)
+      }
 
   private def userContentMessage(s: String) = ContentMessage(User, s)
 
-  def chatFunc[A, B](
-      requestValue: A,
-      handler: InteractionHandler[A, B],
-      functionCalls: List[FunctionCall],
-      history: List[Message] = List.empty
-  ): F[ChatResponse[B]] =
-    val prompt =
-      s"""${handler.objective}
-         |
-         |${handler.render(requestValue)}
-         |
-         |${handler.responseFormatDescription(requestValue)}""".stripMargin
-
-    chatFunctionCall(ContentMessage(User, prompt), functionCalls, history).map { response =>
-      val messageContent = response.message match
-        case ContentMessage(_, c)              => c
-        case ToolCallsMessage(_, _)            => ""
-        case ResultFromToolMessage(_, n, c, _) => c
-
-      ChatResponse(handler.parse(requestValue, messageContent), messageContent, response.history)
-    }
-
-  def chatFunctionCall(
+  private def chatWithFunctionCalls(
       message: Message,
       functionCalls: List[FunctionCall],
       history: List[Message] = List.empty

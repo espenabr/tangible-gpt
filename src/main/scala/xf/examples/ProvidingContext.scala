@@ -4,7 +4,6 @@ import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import xf.Input.{prompt, readFileContent}
 import xf.examples.Common.{clientResource, createInteractionClient, extractKey, msg}
-import xf.examples.Chat
 
 object ProvidingContext extends IOApp {
 

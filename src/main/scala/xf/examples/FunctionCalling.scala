@@ -38,7 +38,7 @@ object FunctionCalling extends IOApp:
       )
 
       for {
-        aa <- ic.chatFunc(
+        aa <- ic.chat(
           "What is 87878 + 23255?",
           handler,
           List(fc)

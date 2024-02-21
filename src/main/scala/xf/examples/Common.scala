@@ -9,7 +9,6 @@ import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.Slf4jFactory
 import xf.gpt.GptApiClient.Common.Message.ContentMessage
 import xf.gpt.GptApiClient.Common.Role.User
-import xf.model.FunctionCall
 
 object Common {
 

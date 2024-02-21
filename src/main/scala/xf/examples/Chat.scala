@@ -3,12 +3,9 @@ package xf.examples
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import xf.InteractionClient
-import xf.model.MessageExchange
 import xf.examples.Common.{clientResource, createInteractionClient, extractKey, msg}
 import xf.Input.prompt
 import xf.gpt.GptApiClient.Common.Message
-import xf.gpt.GptApiClient.Common.Message.ContentMessage
-import xf.gpt.GptApiClient.Common.Role.User
 
 object Chat extends IOApp {
 
@@ -26,5 +23,5 @@ object Chat extends IOApp {
       _       <- Console[IO].println(reply.message)
       _       <- chat(ic, reply.history)
     } yield ExitCode.Success
-  
+
 }

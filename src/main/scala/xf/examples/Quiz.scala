@@ -18,7 +18,7 @@ object Quiz extends IOApp {
         topic     <- prompt("Quiz topic")
         questions <- ic.chat(QuizRequest(topic, Medium, SingleChoiceQuestions(Some(3)), Some(6)), requestQuizQuestions)
         answers   <- collectAnswers(questions.value.get)
-        result    <- ic.chat(answers, answerQuestionsHandler, questions.history)
+        result    <- ic.chat(answers, answerQuestionsHandler, history = questions.history)
         _         <- Console[IO].println(s"${result.value.get}")
       } yield ExitCode.Success
     }

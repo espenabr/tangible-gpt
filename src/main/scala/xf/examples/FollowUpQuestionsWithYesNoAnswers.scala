@@ -36,7 +36,7 @@ object FollowUpQuestionsWithYesNoAnswers extends IOApp {
         answerFromGpt    <- ic.chat(
                               myAnswers,
                               answerQuestionsHandler,
-                              questionsFromGpt.history
+                              history = questionsFromGpt.history
                             )
         _                <- Console[IO].println(s"${answerFromGpt.value.get}")
       } yield ExitCode.Success

@@ -34,7 +34,7 @@ object AuthorRecommender extends IOApp {
         recommended        <- ic.chat(
                                 FavoriteStrengths(Random.shuffle(favoriteStrengths)),
                                 recommendedAuthorsBasedOnFavoriteStrengths,
-                                strengthsOfAuthors.history
+                                history = strengthsOfAuthors.history
                               )
         _                  <- Console[IO].println(recommended.value.get)
       } yield ExitCode.Success
