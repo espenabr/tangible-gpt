@@ -49,7 +49,7 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
       requestValue: A,
       handler: InteractionHandler[A, B],
       functionCalls: List[FunctionCall],
-      history: List[NewMessageExchange] = List.empty
+      history: List[Message] = List.empty
   ): F[NewChatResponse[B]] =
     val prompt =
       s"""${handler.objective}
@@ -70,9 +70,9 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
   def chatFunctionCall(
       message: Message,
       functionCalls: List[FunctionCall],
-      history: List[NewMessageExchange] = List.empty
+      history: List[Message] = List.empty
   ): F[NewSimpleChatResponse] =
-    val messages = appendToNewHistory(history, message)
+    val messages = history :+ message
     val tools    =
       functionCalls.map(fc =>
         Tool(
@@ -93,37 +93,24 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
 
     for
       initialResponse <- gptApiClient.chatCompletions(messages, Some(tools))
+      response        <- initialResponse.choices.last match
+                           case cm: StopChoice                  => initialResponse.pure[F]
+                           case ToolCallsChoice(index, message) =>
+                             val returnMessages: List[Message] =
+                               for
+                                 toolCall     <- message.toolCalls
+                                 functionCall <- functionCalls.find(_.name === toolCall.function.name).toList
+                               yield
+                                 val result = functionCall.function(toolCall.function.arguments)
+                                 ResultFromToolMessage(Role.Tool, toolCall.function.name, result, toolCall.id)
 
-      _ = printResponse(initialResponse)
-      _ = println("That was the initial response...we might call a function now")
-
-      response <- initialResponse.choices.last match
-                    case cm: StopChoice                  =>
-                      println("Nah, we didn't have to call a function")
-                      initialResponse.pure[F]
-                    case ToolCallsChoice(index, message) =>
-                      println("Yeah, we need to call a function!")
-                      val returnMessages: List[Message] =
-                        for
-                          toolCall     <- message.toolCalls
-                          functionCall <- functionCalls.find(_.name === toolCall.function.name).toList
-                        yield
-                          val result = functionCall.function(toolCall.function.arguments)
-                          ResultFromToolMessage(Role.Tool, toolCall.function.name, result, toolCall.id)
-
-                      gptApiClient.chatCompletions((messages :+ message) ++ returnMessages, Some(tools))
+                             gptApiClient.chatCompletions((messages :+ message) ++ returnMessages, Some(tools))
     yield
-      printResponse(response)
       val reply: Message = response.choices.last match
         case StopChoice(_, message)      => message
         case ToolCallsChoice(_, message) => message
 
-      NewSimpleChatResponse(reply, history :+ NewMessageExchange(message, reply))
-
-  private def printResponse(r: CompletionResponse): Unit =
-    println("----response----")
-    println(r)
-    println("----/response----")
+      NewSimpleChatResponse(reply, history :+ message :+ reply)
 
   def plainTextChat(message: String, history: List[MessageExchange] = List.empty): F[SimpleChatResponse] =
     val messages = appendToHistory(history, message)

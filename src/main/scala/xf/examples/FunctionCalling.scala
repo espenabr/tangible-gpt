@@ -13,7 +13,7 @@ object FunctionCalling extends IOApp:
     .use { client =>
       val ic = createInteractionClient(client, extractKey(args))
 
-      val handler = new InteractionHandler[String, String]("", s => s, s => s, (a, b) => Some(a))
+      val handler = new InteractionHandler[String, String]("", s => s, s => s, (a, b) => Some(b))
 
       def sum(a: Int, b: Int) = a + b
 
@@ -27,8 +27,7 @@ object FunctionCalling extends IOApp:
             yield SumParams(a, b)
           }
 
-        val decoded = decode[SumParams](s)(using summon[Decoder[SumParams]])
-        val params: SumParams = decoded.toOption.get
+        val params: SumParams = decode[SumParams](s)(using summon[Decoder[SumParams]]).toOption.get
         sum(params.a, params.b).toString
 
       val fc = FunctionCall(
@@ -44,6 +43,7 @@ object FunctionCalling extends IOApp:
           handler,
           List(fc)
         )
+        _ <- IO.println(aa.rawMessage)
       } yield ExitCode.Success
     }
 

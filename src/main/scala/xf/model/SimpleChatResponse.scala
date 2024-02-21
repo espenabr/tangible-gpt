@@ -9,5 +9,5 @@ case class SimpleChatResponse(
 
 case class NewSimpleChatResponse(
     message: Message,
-    history: List[NewMessageExchange]
+    history: List[Message]
 )
