@@ -12,23 +12,14 @@ import xf.gpt.GptApiClient.Response.FinishReason
 import xf.gpt.GptApiClient.Response.FinishReason.Choice.{StopChoice, ToolCallsChoice}
 import xf.gpt.GptApiClient.Response.FinishReason.CompletionResponse
 import xf.model.Param.{EnumParam, IntegerParam, StringParam}
-import xf.model.{
-  ChatResponse,
-  FunctionCall,
-  InteractionHandler,
-  MessageExchange,
-  NewChatResponse,
-  NewMessageExchange,
-  NewSimpleChatResponse,
-  SimpleChatResponse
-}
+import xf.model.{ChatResponse, FunctionCall, InteractionHandler, MessageExchange, SimpleChatResponse}
 
 class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
 
   def chat[A, B](
       requestValue: A,
       handler: InteractionHandler[A, B],
-      history: List[MessageExchange] = List.empty
+      history: List[Message] = List.empty
   ): F[ChatResponse[B]] =
     val prompt =
       s"""${handler.objective}
@@ -37,20 +28,22 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
          |
          |${handler.responseFormatDescription(requestValue)}""".stripMargin
 
-    plainTextChat(prompt, history).map { response =>
+    plainTextChat(userContentMessage(prompt), history).map { response =>
       ChatResponse(
-        handler.parse(requestValue, response.message),
-        response.message,
-        history :+ MessageExchange(prompt, response.message)
+        handler.parse(requestValue, response.message.content),
+        response.message.content,
+        history :+ userContentMessage(prompt) :+ response.message
       )
     }
+
+  private def userContentMessage(s: String) = ContentMessage(User, s)
 
   def chatFunc[A, B](
       requestValue: A,
       handler: InteractionHandler[A, B],
       functionCalls: List[FunctionCall],
       history: List[Message] = List.empty
-  ): F[NewChatResponse[B]] =
+  ): F[ChatResponse[B]] =
     val prompt =
       s"""${handler.objective}
          |
@@ -64,14 +57,14 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
         case ToolCallsMessage(_, _)            => ""
         case ResultFromToolMessage(_, n, c, _) => c
 
-      NewChatResponse(handler.parse(requestValue, messageContent), messageContent, response.history)
+      ChatResponse(handler.parse(requestValue, messageContent), messageContent, response.history)
     }
 
   def chatFunctionCall(
       message: Message,
       functionCalls: List[FunctionCall],
       history: List[Message] = List.empty
-  ): F[NewSimpleChatResponse] =
+  ): F[SimpleChatResponse] =
     val messages = history :+ message
     val tools    =
       functionCalls.map(fc =>
@@ -110,24 +103,22 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
         case StopChoice(_, message)      => message
         case ToolCallsChoice(_, message) => message
 
-      NewSimpleChatResponse(reply, history :+ message :+ reply)
+      SimpleChatResponse(reply, history :+ message :+ reply)
 
-  def plainTextChat(message: String, history: List[MessageExchange] = List.empty): F[SimpleChatResponse] =
-    val messages = appendToHistory(history, message)
+  def plainTextChat(message: Message, history: List[Message] = List.empty): F[SimpleChatResponse] =
+    val messages = history :+ message
+
     gptApiClient.chatCompletions(messages).map { response =>
-      val reply = latestMessage(response)
-      SimpleChatResponse(reply, history :+ MessageExchange(message, reply))
+      val reply = response.choices.last match
+        case sc: StopChoice      => sc.message
+        case tc: ToolCallsChoice => tc.message
+
+      SimpleChatResponse(reply, history :+ message :+ reply)
     }
 
-  private def appendToHistory(history: List[MessageExchange], prompt: String): List[Message] =
-    history.flatMap { m => ContentMessage(User, m.message) :: ContentMessage(Assistant, m.reply) :: Nil } :+
-      ContentMessage(User, prompt)
-
-  private def appendToNewHistory(history: List[NewMessageExchange], message: Message): List[Message] =
-    history.flatMap { m => List(m.message, m.reply) } :+ message
-
-  private def latestMessage(response: CompletionResponse) = response.choices.last match
-    case StopChoice(_, m)      => m.content
-    case ToolCallsChoice(_, m) => ""
+  private def lastMessage(response: CompletionResponse) =
+    response.choices.last match
+      case sc: StopChoice      => sc.message
+      case tc: ToolCallsChoice => tc.message
 
 }

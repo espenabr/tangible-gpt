@@ -7,6 +7,8 @@ import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.slf4j.Slf4jFactory
+import xf.gpt.GptApiClient.Common.Message.ContentMessage
+import xf.gpt.GptApiClient.Common.Role.User
 import xf.model.FunctionCall
 
 object Common {
@@ -24,6 +26,9 @@ object Common {
     else
       println("OpenAPI key must be provided as argument!")
       ""
+
+  def msg(content: String) =
+    ContentMessage(User, content)
 
   val clientResource: Resource[IO, Client[IO]] = EmberClientBuilder
     .default[IO]

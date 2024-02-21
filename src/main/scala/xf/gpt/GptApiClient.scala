@@ -23,8 +23,6 @@ class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String) {
   def chatCompletions(messages: List[Message], tools: Option[List[Tool]] = None): F[CompletionResponse] =
     val body = CompletionRequest("gpt-4", messages, tools)
 
-    printRequest(body)
-
     val request = Request[F](
       method = Method.POST,
       uri = uri"https://api.openai.com/v1/chat/completions",
@@ -36,11 +34,6 @@ class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String) {
     )
 
     client.expect[CompletionResponse](request)
-
-  private def printRequest(r: CompletionRequest) =
-    println("----request----")
-    println(r.asJson)
-    println("----/request----")
 
 }
 object GptApiClient {
@@ -58,21 +51,21 @@ object GptApiClient {
         case Role.Function  => "function"
       }
 
-    enum Message:
+    enum Message(val role: Role, val content: String):
       case ContentMessage(
-          role: Role,
-          content: String
-      )
+          override val role: Role,
+          override val content: String
+      ) extends Message(role, content)
       case ToolCallsMessage(
-          role: Role,
+          override val role: Role,
           toolCalls: List[ToolCall]
-      )
+      ) extends Message(role, "")
       case ResultFromToolMessage(
-          role: Role,
+          override val role: Role,
           name: String,
-          content: String,
+          override val content: String,
           toolCallId: String
-      )
+      ) extends Message(role, content)
 
     object Message:
       given Encoder[Message] = Encoder {
@@ -259,6 +252,7 @@ object GptApiClient {
         }
       }
 
+      // TODO make Message available from Choice
       enum Choice:
         case StopChoice(index: Int, message: ContentMessage)
         case ToolCallsChoice(index: Int, message: ToolCallsMessage)
