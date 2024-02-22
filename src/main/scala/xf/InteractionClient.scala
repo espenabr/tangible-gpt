@@ -19,7 +19,7 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
   def chat[A, B](
       requestValue: A,
       handler: InteractionHandler[A, B],
-      functionCalls: List[FunctionCall] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
       history: List[Message] = List.empty
   ): F[ChatResponse[B]] =
     val prompt =
@@ -51,7 +51,7 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
 
   private def chatWithFunctionCalls(
       message: Message,
-      functionCalls: List[FunctionCall],
+      functionCalls: List[FunctionCall[F]],
       history: List[Message] = List.empty
   ): F[SimpleChatResponse] =
     val messages = history :+ message
@@ -78,15 +78,18 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
       response        <- initialResponse.choices.last match
                            case cm: StopChoice                  => initialResponse.pure[F]
                            case ToolCallsChoice(index, message) =>
-                             val returnMessages: List[Message] =
-                               for
+                             val returnMessages: F[List[Message]] =
+                               (for
                                  toolCall     <- message.toolCalls
                                  functionCall <- functionCalls.find(_.name === toolCall.function.name).toList
                                yield
-                                 val result = functionCall.function(toolCall.function.arguments)
-                                 ResultFromToolMessage(Role.Tool, toolCall.function.name, result, toolCall.id)
+                                 val result: F[String] = functionCall.function(toolCall.function.arguments)
+                                 result.map(r => ResultFromToolMessage(Role.Tool, toolCall.function.name, r, toolCall.id))
+                               ).sequence
 
-                             gptApiClient.chatCompletions((messages :+ message) ++ returnMessages, Some(tools))
+                             returnMessages.flatMap(rm =>
+                               gptApiClient.chatCompletions((messages :+ message) ++ rm, Some(tools))
+                             )
     yield
       val reply: Message = response.choices.last match
         case StopChoice(_, message)      => message

@@ -1,10 +1,12 @@
 package xf.model
 
-case class FunctionCall(
-    name: String,
-    description: String,
-    params: List[Param],
-    function: String => String
+import cats.Monad
+
+class FunctionCall[F[_]: Monad](
+    val name: String,
+    val description: String,
+    val params: List[Param],
+    val function: String => F[String]
 )
 
 enum Param:

@@ -6,6 +6,7 @@ import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
 import xf.model.Param.IntegerParam
 import xf.model.{FunctionCall, InteractionHandler, Param}
 import io.circe._, io.circe.parser._
+import cats.implicits.*
 
 object FunctionCalling extends IOApp:
 
@@ -17,7 +18,7 @@ object FunctionCalling extends IOApp:
 
       def sum(a: Int, b: Int) = a + b
 
-      def f(s: String) =
+      def f(s: String): IO[String] =
         case class SumParams(a: Int, b: Int)
         object SumParams:
           given Decoder[SumParams] = Decoder { c =>
@@ -28,7 +29,7 @@ object FunctionCalling extends IOApp:
           }
 
         val params: SumParams = decode[SumParams](s)(using summon[Decoder[SumParams]]).toOption.get
-        sum(params.a, params.b).toString
+        sum(params.a, params.b).toString.pure[IO]
 
       val fc = FunctionCall(
         "sum_of_ints",
