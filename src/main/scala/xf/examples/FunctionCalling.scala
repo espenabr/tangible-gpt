@@ -38,13 +38,12 @@ object FunctionCalling extends IOApp:
         s => f(s)
       )
 
-      for {
+      for
         aa <- ic.chat(
-          "What is 87878 + 23255?",
-          handler,
-          List(fc)
-        )
-        _ <- IO.println(aa.rawMessage)
-      } yield ExitCode.Success
+                "What is 87878 + 23255?",
+                handler,
+                List(fc)
+              )
+        _  <- IO.println(aa.rawMessage)
+      yield ExitCode.Success
     }
-

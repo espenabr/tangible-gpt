@@ -11,7 +11,7 @@ import xf.model.Table.Column.{NumberColumn, SingleChoiceColumn, TextColumn}
 import xf.model.Table.Row
 import xf.model.Table.Cell.{SingleChoiceCell, TextCell}
 
-object AddColumnToTable extends IOApp {
+object AddColumnToTable extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
@@ -55,5 +55,3 @@ object AddColumnToTable extends IOApp {
     Column.TextColumn("Personality"),
     Column.BooleanColumn("Is old")
   )
-
-}

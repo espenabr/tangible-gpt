@@ -9,7 +9,7 @@ import xf.model.Table.Cell.{BooleanCell, SingleChoiceCell, TextCell}
 import xf.model.Table.{Cell, Column, Row}
 import xf.model.Table
 
-object TabularData extends IOApp {
+object TabularData extends IOApp:
 
   /*
    * Ask for data in a tablular format with specific data types per column
@@ -19,14 +19,14 @@ object TabularData extends IOApp {
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
       val ic = createInteractionClient(client, extractKey(args))
-      for {
+      for
         response  <- ic.chat(
                        TabularDataRequest("Characters from the Donald Duck & co. universe.", tableColumns),
                        tableHandler
                      )
         characters = response.value.get.rows.map(toCharacter)
         _         <- Console[IO].println(characters.mkString("\n"))
-      } yield ExitCode.Success
+      yield ExitCode.Success
     }
 
   val tableColumns: List[Column] = List(
@@ -48,18 +48,16 @@ object TabularData extends IOApp {
       isChild: Boolean
   )
 
-  private def toCharacter(row: Row): Option[Character] = {
+  private def toCharacter(row: Row): Option[Character] =
     val columns = row.columns
-
-    for {
+    for
       name        <- stringFromCell(columns.head)
       animalStr   <- stringFromCell(columns(1))
       animal      <- Try(Animal.valueOf(animalStr)).toOption
       occupation  <- stringFromCell(columns(2))
       personality <- stringFromCell(columns(3))
       isOld       <- booleanFromCell(columns(4))
-    } yield Character(name, animal, occupation, personality, isOld)
-  }
+    yield Character(name, animal, occupation, personality, isOld)
 
   private def stringFromCell(c: Cell): Option[String] = c match
     case TextCell(s, _)         => Some(s)
@@ -69,5 +67,3 @@ object TabularData extends IOApp {
   private def booleanFromCell(c: Cell) = c match
     case BooleanCell(b, _) => Some(b)
     case _                 => None
-
-}

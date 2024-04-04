@@ -14,7 +14,7 @@ import xf.gpt.GptApiClient.Request.{CompletionRequest, Tool}
 import xf.gpt.GptApiClient.Request.Property.{EnumProperty, IntegerProperty, StringProperty}
 import xf.gpt.GptApiClient.Response.FinishReason.{CompletionResponse, ToolCall}
 
-class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String) {
+class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String):
 
   private val entityEncoder: EntityEncoder[F, CompletionRequest] = jsonEncoderOf[CompletionRequest]
 
@@ -35,8 +35,7 @@ class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String) {
 
     client.expect[CompletionResponse](request)
 
-}
-object GptApiClient {
+object GptApiClient:
 
   object Common:
     enum Role:
@@ -111,10 +110,10 @@ object GptApiClient {
       }
 
     given Decoder[Role] = Decoder { c =>
-      for {
+      for
         str  <- c.as[String]
         role <- parseRole(str).left.map(DecodingFailure(_, c.history))
-      } yield role
+      yield role
     }
 
   object Request:
@@ -202,12 +201,12 @@ object GptApiClient {
       case class CompletionResponse(id: String, model: String, choices: List[Choice], usage: Usage)
       object CompletionResponse:
         given Decoder[CompletionResponse] = Decoder { c =>
-          for {
+          for
             id      <- c.downField("id").as[String]
             model   <- c.downField("model").as[String]
             choices <- c.downField("choices").as[List[Choice]]
             usage   <- c.downField("usage").as[Usage]
-          } yield CompletionResponse(id, model, choices, usage)
+          yield CompletionResponse(id, model, choices, usage)
         }
 
       case class ToolCallFunction(name: String, arguments: String) // TODO Json must be decoded
@@ -244,11 +243,11 @@ object GptApiClient {
       case class Usage(promptTokens: Int, completionTokens: Int, totalTokens: Int)
       object Usage {
         given Decoder[Usage] = Decoder { c =>
-          for {
+          for
             promptTokens     <- c.downField("prompt_tokens").as[Int]
             completionTokens <- c.downField("completion_tokens").as[Int]
             totalTokens      <- c.downField("total_tokens").as[Int]
-          } yield Usage(promptTokens, completionTokens, totalTokens)
+          yield Usage(promptTokens, completionTokens, totalTokens)
         }
       }
 
@@ -274,5 +273,3 @@ object GptApiClient {
               yield ToolCallsChoice(index, message)
           }
         }
-
-}

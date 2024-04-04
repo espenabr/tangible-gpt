@@ -10,7 +10,7 @@ import org.typelevel.log4cats.slf4j.Slf4jFactory
 import xf.gpt.GptApiClient.Common.Message.ContentMessage
 import xf.gpt.GptApiClient.Common.Role.User
 
-object Common {
+object Common:
 
   implicit val logging: LoggerFactory[IO] = Slf4jFactory.create[IO]
 
@@ -32,5 +32,3 @@ object Common {
   val clientResource: Resource[IO, Client[IO]] = EmberClientBuilder
     .default[IO]
     .build
-
-}

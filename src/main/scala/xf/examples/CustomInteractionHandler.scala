@@ -5,14 +5,14 @@ import cats.effect.std.Console
 import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
 import xf.model.InteractionHandler
 
-object CustomInteractionHandler extends IOApp {
+object CustomInteractionHandler extends IOApp:
 
   /* Interaction handlers can be written on the fly for specific purposes */
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
       val ic = createInteractionClient(client, extractKey(args))
-      for {
+      for
         response <- ic.chat(
                       List("Flyfishing", "Bicycling", "Partying", "Socializing", "Watching TV", "Dishwashing"),
                       new InteractionHandler[List[String], List[(String, Int)]](
@@ -28,7 +28,5 @@ object CustomInteractionHandler extends IOApp {
                       )
                     )
         _        <- Console[IO].println(response.value.get.map { case (t, i) => s"$t\t$i" }.mkString("\n"))
-      } yield ExitCode.Success
+      yield ExitCode.Success
     }
-
-}

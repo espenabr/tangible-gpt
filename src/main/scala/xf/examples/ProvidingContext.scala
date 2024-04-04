@@ -5,7 +5,7 @@ import cats.effect.std.Console
 import xf.Input.{prompt, readFileContent}
 import xf.examples.Common.{clientResource, createInteractionClient, extractKey, msg}
 
-object ProvidingContext extends IOApp {
+object ProvidingContext extends IOApp:
 
   /*
    * Local files can be sent as context and utilized later in the conversation
@@ -24,5 +24,3 @@ object ProvidingContext extends IOApp {
         _        <- Chat.chat(ic, response.history) // continue chat
       } yield ExitCode.Success
     }
-
-}

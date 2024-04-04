@@ -2,7 +2,7 @@ package xf.interactionhandlers
 
 import xf.model.InteractionHandler
 
-object RecommendAuthors {
+object RecommendAuthors:
 
   case class FavoriteAuthors(authors: List[String])
 
@@ -24,5 +24,3 @@ object RecommendAuthors {
     _ => "",
     (_, s) => Some(s)
   )
-
-}

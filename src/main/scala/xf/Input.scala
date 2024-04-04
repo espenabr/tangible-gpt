@@ -21,7 +21,7 @@ import xf.interactionhandlers.RequestQuestions.QuestionFromGpt.{
   TextQuestionFromGpt
 }
 
-object Input {
+object Input:
 
   def prompt(prompt: String): IO[String] =
     for {
@@ -45,8 +45,8 @@ object Input {
       .map { case (index, option) => s"  $index) $option" }
       .mkString("\n")
 
-  private def collectAnswer(questionFromGpt: QuestionFromGpt): IO[AnswerToQuestionFromGpt] = {
-    val question = questionFromGpt match {
+  private def collectAnswer(questionFromGpt: QuestionFromGpt): IO[AnswerToQuestionFromGpt] =
+    val question = questionFromGpt match
       case BooleanQuestionFromGpt(_, question)                 => s"$question (y/n)"
       case TextQuestionFromGpt(_, question)                    => question
       case SingleChoiceQuestionFromGpt(_, question, options)   =>
@@ -55,11 +55,10 @@ object Input {
       case MultipleChoiceQuestionFromGpt(_, question, options) =>
         s"""$question (select those that apply)
            |${formatOptions(options)}""".stripMargin
-    }
 
     for {
       _      <- Console[IO].print(s"$question\n> ")
-      answer <- questionFromGpt match {
+      answer <- questionFromGpt match
                   case q: BooleanQuestionFromGpt        =>
                     Console[IO].readLine.flatMap(requireYesNoInput).map(i => AnswerToBooleanQuestionFromGpt(q, i))
                   case q: TextQuestionFromGpt           =>
@@ -72,19 +71,17 @@ object Input {
                     Console[IO].readLine
                       .flatMap(l => requireSelectedIndicesInput(l, q.options.length))
                       .map(s => AnswerToMultipleChoiceQuestionFromGpt(q, s))
-                }
     } yield answer
-  }
 
   private def requireYesNoInput(input: String): IO[Boolean] =
     input.toLowerCase() match {
       case "y" | "yes" | "true" => IO.pure(true)
       case "n" | "no" | "false" => IO.pure(false)
       case _                    =>
-        for {
+        for
           retryInput   <- prompt("Please answer 'y' or 'n'")
           booleanInput <- requireYesNoInput(retryInput)
-        } yield booleanInput
+        yield booleanInput
     }
 
   private def requireSelectedIndexInput(input: String, maxIndex: Int): IO[Int] =
@@ -107,7 +104,7 @@ object Input {
         } yield numberInput
     end match
 
-  private def requireSelectedIndicesInput(input: String, maxIndex: Int): IO[Set[Int]] = {
+  private def requireSelectedIndicesInput(input: String, maxIndex: Int): IO[Set[Int]] =
     val stripped = input.split(",").toList.map(_.strip())
     if stripped.length === 0 then IO.pure(Set.empty)
     else
@@ -120,9 +117,6 @@ object Input {
             retryInput    <- prompt(s"Please enter a list of items separated by comma")
             selectedItems <- requireSelectedIndicesInput(retryInput, maxIndex)
           } yield selectedItems
-  }
 
   def readFileContent(path: String): IO[String] =
     IO { Using(Source.fromFile(path))(_.mkString).getOrElse("") }
-
-}

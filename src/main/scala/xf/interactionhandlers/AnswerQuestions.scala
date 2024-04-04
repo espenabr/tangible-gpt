@@ -33,13 +33,13 @@ object AnswerQuestions {
     answers.map(describeAnswer).mkString("\n")
 
   private def describeAnswer(answer: AnswerToQuestionFromGpt) = {
-    val (q, a) = answer match {
+    val (q, a) = answer match
       case AnswerToBooleanQuestionFromGpt(question, answer)               => (question, yesNo(answer))
       case AnswerToTextQuestionFromQpt(question, answer)                  => (question, answer)
       case AnswerToSingleChoiceQuestionFromGpt(question, index)           => (question, question.options(index))
       case AnswerToMultipleChoiceQuestionFromGpt(question, answerIndices) =>
         (question, answerIndices.map(_ + 1).mkString(", "))
-    }
+
     s"""Question: ${q.question}
        |Answer: $a
        |""".stripMargin

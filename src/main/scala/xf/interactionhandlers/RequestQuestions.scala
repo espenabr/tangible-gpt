@@ -15,7 +15,7 @@ import xf.interactionhandlers.RequestQuestions.QuestionFromGpt.{
   TextQuestionFromGpt
 }
 
-object RequestQuestions {
+object RequestQuestions:
 
   case class QuestionExpectingFollowupQuestions(
       question: String,
@@ -71,7 +71,7 @@ object RequestQuestions {
       (q, s) => parseQuestions(q.expectedQuestionType, s)
     )
 
-  private def parseQuestions(questionType: QuestionType, s: String): Option[List[QuestionFromGpt]] = {
+  private def parseQuestions(questionType: QuestionType, s: String): Option[List[QuestionFromGpt]] =
     val lines     = s.split("\n")
     val questions = (1 to lines.length).toList.zip(lines).map { case (idx, line) =>
       questionType match {
@@ -86,9 +86,8 @@ object RequestQuestions {
       }
     }
     Some(questions) // TODO None if parse error
-  }
 
-  private def responseFormatPrompt(questionType: QuestionType, noOfQuestions: Option[Int]) = {
+  private def responseFormatPrompt(questionType: QuestionType, noOfQuestions: Option[Int]) =
     val describePossibleAnswers = questionType match {
       case YesNoQuestions                       => s"""All questions should only have "yes" or "no" answers."""
       case TextQuestions                        => ""
@@ -101,9 +100,8 @@ object RequestQuestions {
        |No lines should be prefixed with a number or any other character to indicate it's an item in a list, only the item itself and the options.
        |$describePossibleAnswers
        |""".stripMargin
-  }
 
-  private def questionsWithChoicesPrompt(noOfQuestions: Option[Int], noOfOptions: Option[Int]) = {
+  private def questionsWithChoicesPrompt(noOfQuestions: Option[Int], noOfOptions: Option[Int]) =
     val example = noOfOptions match
       case Some(n) =>
         s"""<question1>;${(1 to n).map(n => s"<option$n>").mkString(";")}
@@ -125,6 +123,3 @@ object RequestQuestions {
        |$example
        |
        |I want nothing else in the response except these questions with options.""".stripMargin
-  }
-
-}

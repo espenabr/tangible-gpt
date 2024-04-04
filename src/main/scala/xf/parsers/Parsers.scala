@@ -6,11 +6,11 @@ import xf.model.Table.{Column, Row}
 import xf.model.Table.Column.{BooleanColumn, NumberColumn, SingleChoiceColumn, TextColumn}
 import xf.model.Table.Cell.{BooleanCell, NumberCell, SingleChoiceCell, TextCell}
 
-object Parsers {
+object Parsers:
 
   /* General-purpose response parsing */
 
-  def parseTable(columns: List[Column])(s: String): Option[Table] = {
+  def parseTable(columns: List[Column])(s: String): Option[Table] =
     val lines = s.split("\n").toList.filter(_.contains(";"))
     val rows  = lines.map { line =>
       val parts = line.split(";")
@@ -23,18 +23,16 @@ object Parsers {
           case SingleChoiceColumn(_, options) =>
             parseSingleChoice(part, options).map(s => SingleChoiceCell(s, column))
       }
-      if cells.forall(_.isDefined) then Some(Row(cells.flatMap(_.toList))) else None
+
+      Option.when(cells.forall(_.isDefined))(Row(cells.flatMap(_.toList)))
     }
 
-    if rows.forall(_.isDefined) then Some(Table(columns, rows.flatMap(_.toList))) else None
-  }
+    Option.when(rows.forall(_.isDefined))(Table(columns, rows.flatMap(_.toList)))
 
-  private def parseBoolean(s: String): Option[Boolean] = s.toLowerCase match {
+  private def parseBoolean(s: String): Option[Boolean] = s.toLowerCase match
     case "false" | "no" | "n" | "0" => Some(false)
     case "true" | "yes" | "y" | "1" => Some(true)
     case _                          => None
-  }
 
   private def parseSingleChoice(s: String, options: List[String]): Option[String] = options.find(_ === s)
 
-}

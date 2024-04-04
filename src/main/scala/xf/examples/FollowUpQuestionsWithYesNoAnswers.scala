@@ -13,7 +13,7 @@ import xf.interactionhandlers.RequestQuestions.{
   QuestionType
 }
 
-object FollowUpQuestionsWithYesNoAnswers extends IOApp {
+object FollowUpQuestionsWithYesNoAnswers extends IOApp:
 
   /*
    * Flow:
@@ -26,7 +26,7 @@ object FollowUpQuestionsWithYesNoAnswers extends IOApp {
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
       val ic = createInteractionClient(client, extractKey(args))
-      for {
+      for
         question         <- prompt("Ask a questions and get follow-up questions")
         questionsFromGpt <- ic.chat(
                               QuestionExpectingFollowupQuestions(question, YesNoQuestions, None),
@@ -39,7 +39,5 @@ object FollowUpQuestionsWithYesNoAnswers extends IOApp {
                               history = questionsFromGpt.history
                             )
         _                <- Console[IO].println(s"${answerFromGpt.value.get}")
-      } yield ExitCode.Success
+      yield ExitCode.Success
     }
-
-}

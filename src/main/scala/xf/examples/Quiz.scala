@@ -9,7 +9,7 @@ import xf.interactionhandlers.RequestQuestions.QuestionType.{SingleChoiceQuestio
 import xf.interactionhandlers.AnswerQuestions.answerQuestionsHandler
 import xf.interactionhandlers.RequestQuestions.Difficulty.Medium
 
-object Quiz extends IOApp {
+object Quiz extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
@@ -22,5 +22,3 @@ object Quiz extends IOApp {
         _         <- Console[IO].println(s"${result.value.get}")
       } yield ExitCode.Success
     }
-
-}

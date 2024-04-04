@@ -7,7 +7,7 @@ import xf.examples.Common.{clientResource, createInteractionClient, extractKey, 
 import xf.Input.prompt
 import xf.gpt.GptApiClient.Common.Message
 
-object Chat extends IOApp {
+object Chat extends IOApp:
 
   /*
    * Continuous command-line chat
@@ -17,11 +17,9 @@ object Chat extends IOApp {
     .use { client => chat(createInteractionClient(client, extractKey(args)), List.empty) }
 
   def chat(ic: InteractionClient[IO], history: List[Message]): IO[ExitCode] =
-    for {
+    for
       message <- prompt("Chat")
       reply   <- ic.plainTextChat(msg(message), history)
       _       <- Console[IO].println(reply.message)
       _       <- chat(ic, reply.history)
-    } yield ExitCode.Success
-
-}
+    yield ExitCode.Success

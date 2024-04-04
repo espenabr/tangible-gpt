@@ -1,9 +1,7 @@
 package xf.interactionhandlers
 
 import xf.model.{InteractionHandler, Table}
-import xf.model.Table.{Cell, Column, Row}
-import xf.model.Table.Cell.{BooleanCell, NumberCell, SingleChoiceCell, TextCell}
-import xf.model.Table.Column.{BooleanColumn, NumberColumn, SingleChoiceColumn, TextColumn}
+import xf.model.Table.Column
 import xf.parsers.Parsers
 import xf.renderers.Renderers
 import xf.renderers.Renderers.{describeColumn, renderTable}

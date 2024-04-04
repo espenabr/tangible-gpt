@@ -6,7 +6,7 @@ case class Table(
     columns: List[Column],
     rows: List[Row]
 )
-object Table {
+object Table:
 
   enum Column(val name: String):
     case TextColumn(override val name: String)                                extends Column(name)
@@ -21,5 +21,3 @@ object Table {
     case SingleChoiceCell(value: String, column: Column)
 
   case class Row(columns: List[Cell])
-
-}

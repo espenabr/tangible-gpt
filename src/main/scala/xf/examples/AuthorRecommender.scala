@@ -13,7 +13,7 @@ import xf.interactionhandlers.RecommendAuthors.{
 
 import scala.util.Random
 
-object AuthorRecommender extends IOApp {
+object AuthorRecommender extends IOApp:
 
   /*
    * Flow:
@@ -39,5 +39,3 @@ object AuthorRecommender extends IOApp {
         _                  <- Console[IO].println(recommended.value.get)
       } yield ExitCode.Success
     }
-
-}
