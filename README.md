@@ -2,14 +2,15 @@
 
 ### Tools for semi-automating interaction with OpenAI's chat completion API
 
-An abstraction layer of building blocks on top of the existing API to simplify automating the conversation.
+An abstraction layer of building blocks on top of the existing API to simplify automating the conversation
 
 ### Features include
 
 - Prompt GPT for specific interaction modes, e.g. asking you questions or other request for input
 - Specification of response format, including prompting and parsing
-- Simple command-line integration, but intended as more general-purpose
-- Scala client for the standard chat completion HTTP API.
+- Simple command-line integration for playing around, but intended as a library for different applications
+- Scala client for the standard chat completion HTTP API
+- Simplify GPT4's function calling feature by binding to Scala functions
 
 ### Purpose
 
@@ -25,8 +26,7 @@ An abstraction layer of building blocks on top of the existing API to simplify a
 
 ### Limitations
 
-- This is just an experiment. I have limited understanding of prompt engineering, and this elaborate prompting might
-  impact the quality of the results. With some luck it might be possible to extend this project to mitigate it
+- A bit naive approach to specifying exact response format. Can probably be improved with better prompt engineering
 - No decent error handling yet
 - As you can't always predict the output from LLMs, desired response formats can never be guaranteed
 
