@@ -97,7 +97,10 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
 
       SimpleChatResponse(reply, history :+ message :+ reply)
 
-  def plainTextChat(message: Message, history: List[Message] = List.empty): F[SimpleChatResponse] =
+  def plainTextChat(
+      message: Message,
+      history: List[Message] = List.empty
+  ): F[SimpleChatResponse] =
     val messages = history :+ message
 
     gptApiClient.chatCompletions(messages).map { response =>

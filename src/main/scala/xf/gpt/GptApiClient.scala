@@ -10,7 +10,7 @@ import io.circe.syntax.*
 import cats.effect.Concurrent
 import xf.gpt.GptApiClient.Common.Message.{ContentMessage, ToolCallsMessage}
 import xf.gpt.GptApiClient.Common.Message
-import xf.gpt.GptApiClient.Request.{CompletionRequest, Tool}
+import xf.gpt.GptApiClient.Request.{CompletionRequest, ResponseFormat, Tool}
 import xf.gpt.GptApiClient.Request.Property.{EnumProperty, IntegerProperty, StringProperty}
 import xf.gpt.GptApiClient.Response.FinishReason.{CompletionResponse, ToolCall}
 
@@ -20,8 +20,11 @@ class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String):
 
   given EntityDecoder[F, CompletionResponse] = jsonOf[F, CompletionResponse]
 
-  def chatCompletions(messages: List[Message], tools: Option[List[Tool]] = None): F[CompletionResponse] =
-    val body = CompletionRequest("gpt-4", messages, tools)
+  def chatCompletions(
+      messages: List[Message],
+      tools: Option[List[Tool]] = None
+  ): F[CompletionResponse] =
+    val body           = CompletionRequest("gpt-4", messages, tools)
 
     val request = Request[F](
       method = Method.POST,
@@ -177,13 +180,29 @@ object GptApiClient:
         )
       }
 
-    case class CompletionRequest(model: String, messages: List[Message], tools: Option[List[Tool]])
+    enum ResponseFormat:
+      case Auto
+      case JsonObject
+
+    object ResponseFormat:
+      given Encoder[ResponseFormat] = Encoder.encodeString.contramap {
+        case Auto       => "auto"
+        case JsonObject => "json_object"
+      }
+
+    case class CompletionRequest(
+        model: String,
+        messages: List[Message],
+        tools: Option[List[Tool]]
+//        responseFormat: ResponseFormat
+    )
     object CompletionRequest:
       given Encoder[CompletionRequest] = Encoder { r =>
         Json.obj(
-          "model"    := r.model,
-          "messages" := r.messages,
-          "tools"    := r.tools
+          "model"           := r.model,
+          "messages"        := r.messages,
+          "tools"           := r.tools
+//          "response_format" := r.responseFormat
         )
       }
 
