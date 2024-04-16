@@ -81,7 +81,7 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]) {
                              val returnMessages: F[List[Message]] =
                                (for
                                  toolCall     <- message.toolCalls
-                                 functionCall <- functionCalls.find(_.name === toolCall.function.name).toList
+                                 functionCall <- functionCalls.filter(_.name === toolCall.function.name)
                                yield
                                  val result: F[String] = functionCall.function(toolCall.function.arguments)
                                  result.map(r => ResultFromToolMessage(Role.Tool, toolCall.function.name, r, toolCall.id))

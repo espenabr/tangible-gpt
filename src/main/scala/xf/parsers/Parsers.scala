@@ -1,6 +1,8 @@
 package xf.parsers
 
 import cats.implicits.*
+import io.circe.Decoder
+import io.circe.parser.decode
 import xf.model.Table
 import xf.model.Table.{Column, Row}
 import xf.model.Table.Column.{BooleanColumn, NumberColumn, SingleChoiceColumn, TextColumn}
@@ -36,3 +38,8 @@ object Parsers:
 
   private def parseSingleChoice(s: String, options: List[String]): Option[String] = options.find(_ === s)
 
+  def parseJsonObject[T: Decoder](s: String): Option[T] =
+    decode[T](s).toOption
+
+  def parseJsonArray[T: Decoder](s: String): Option[List[T]] =
+    decode[List[T]](s).toOption

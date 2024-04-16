@@ -34,7 +34,7 @@ object ResponseAsTable:
       case TextColumn(_)                  => "fdes poos"
       case SingleChoiceColumn(_, options) => options.head
 
-    s"""I need a table in csv format, using ; (semicolon as a separator. One row per line.
+    s"""I need a table in csv format, using ; (semicolon) as a separator. One row per line.
        |
        |${columns.map(describeColumn).mkString("\n")}
        |

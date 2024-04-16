@@ -6,7 +6,7 @@ import xf.parsers.Parsers
 import xf.renderers.Renderers
 import xf.renderers.Renderers.{describeColumn, renderTable}
 
-object ExpandTable {
+object ExpandTable:
 
   case class AddColumn(
       table: Table,
@@ -41,5 +41,3 @@ object ExpandTable {
             |${ResponseAsTable.specifyTableFormat(e.table.columns)}""".stripMargin,
     (e, s) => Parsers.parseTable(e.table.columns)(s)
   )
-
-}

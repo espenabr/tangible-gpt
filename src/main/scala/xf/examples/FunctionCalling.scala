@@ -1,7 +1,7 @@
 package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
-import io.circe.{Decoder, Json}
+import io.circe.Decoder
 import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
 import xf.model.Param.IntegerParam
 import xf.model.{FunctionCall, InteractionHandler, Param}

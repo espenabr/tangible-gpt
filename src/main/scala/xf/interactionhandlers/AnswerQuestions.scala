@@ -14,7 +14,7 @@ import xf.interactionhandlers.RequestQuestions.QuestionFromGpt.{
   TextQuestionFromGpt
 }
 
-object AnswerQuestions {
+object AnswerQuestions:
 
   enum AnswerToQuestionFromGpt:
     case AnswerToBooleanQuestionFromGpt(question: BooleanQuestionFromGpt, answer: Boolean)
@@ -46,5 +46,3 @@ object AnswerQuestions {
   }
 
   private def yesNo(b: Boolean) = if b then "yes" else "no"
-
-}

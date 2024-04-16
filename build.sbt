@@ -1,4 +1,4 @@
-ThisBuild / organization := "com.example"
+ThisBuild / organization := "xf"
 ThisBuild / scalaVersion := "3.3.0"
 
 val http4sVersion = "1.0.0-M40"
