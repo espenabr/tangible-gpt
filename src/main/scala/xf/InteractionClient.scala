@@ -24,62 +24,55 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history: List[Message] = List.empty,
       reasoningStrategy: ReasoningStrategy = None
   ): F[ChatResponse[B]] =
+    val startOfPrompt =
+      s"""${handler.objective}
+         |
+         |${handler.render(requestValue)}""".stripMargin
+
     val prompt = reasoningStrategy match
       case None                      =>
-        s"""${handler.objective}
-           |
-           |${handler.render(requestValue)}
+        s"""$startOfPrompt
            |
            |${handler.responseFormatDescription(requestValue)}""".stripMargin
       case ThinkStepByStep           =>
-        s"""${handler.objective}
-           |
-           |${handler.render(requestValue)}
+        s"""$startOfPrompt
            |
            |Let's think step by step""".stripMargin
       case SuggestMultipleAndPickOne =>
-        s"""${handler.objective}
-           |
-           |${handler.render(requestValue)}
+        s"""$startOfPrompt
            |
            |Give me some alternative answers to this that could make sense. Enumerate them.""".stripMargin
 
-    if functionCalls.isEmpty then
-      for
-        response <- plainTextChat(userContentMessage(prompt), history)
-        finalResponse <- reasoningStrategy match
-                           case ThinkStepByStep           =>
-                             plainTextChat(
-                               userContentMessage(
-                                 s"""Give me an answer.
-                                    |${handler.responseFormatDescription(requestValue)}""".stripMargin
-                               )
-                             )
-                           case SuggestMultipleAndPickOne =>
-                             plainTextChat(
-                               userContentMessage(
-                                 s"""Pick the best answer.
-                                    |${handler.responseFormatDescription(requestValue)}""".stripMargin
-                               )
-                             )
-                           case None                      =>
-                             Concurrent[F].pure { SimpleChatResponse(response.message, response.history) }
-      yield ChatResponse[B](
-        handler.parse(requestValue, finalResponse.message.content),
-        finalResponse.message.content,
-        reasoningStrategy match
-          case None => response.history
-          case _    => finalResponse.history
-      )
-    else
-      chatWithFunctionCalls(ContentMessage(User, prompt), functionCalls, history).map { response =>
-        val messageContent = response.message match
-          case ContentMessage(_, c)              => c
-          case ToolCallsMessage(_, _)            => ""
-          case ResultFromToolMessage(_, n, c, _) => c
+    val message = userContentMessage(prompt)
 
-        ChatResponse(handler.parse(requestValue, messageContent), messageContent, response.history)
-      }
+    for
+      response <- if functionCalls.isEmpty then plainTextChat(message, history)
+                  else chatWithFunctionCalls(message, functionCalls, history)
+
+      finalResponse <- reasoningStrategy match
+                         case ThinkStepByStep           =>
+                           plainTextChat(
+                             userContentMessage(
+                               s"""Give me an answer.
+                                    |${handler.responseFormatDescription(requestValue)}""".stripMargin
+                             )
+                           )
+                         case SuggestMultipleAndPickOne =>
+                           plainTextChat(
+                             userContentMessage(
+                               s"""Pick the best answer.
+                                    |${handler.responseFormatDescription(requestValue)}""".stripMargin
+                             )
+                           )
+                         case None                      =>
+                           SimpleChatResponse(response.message, response.history).pure[F]
+    yield ChatResponse[B](
+      handler.parse(requestValue, finalResponse.message.content),
+      finalResponse.message.content,
+      reasoningStrategy match
+        case None => response.history
+        case _    => finalResponse.history
+    )
 
   private def userContentMessage(s: String) = ContentMessage(User, s)
 

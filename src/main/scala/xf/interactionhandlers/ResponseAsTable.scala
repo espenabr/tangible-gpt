@@ -30,8 +30,8 @@ object ResponseAsTable:
 
     def example(c: Column) = c match
       case BooleanColumn(_)               => "false"
-      case NumberColumn(_)                => "4216"
-      case TextColumn(_)                  => "fdes poos"
+      case NumberColumn(_)                => "4"
+      case TextColumn(_)                  => "blah blah"
       case SingleChoiceColumn(_, options) => options.head
 
     s"""I need a table in csv format, using ; (semicolon) as a separator. One row per line.
