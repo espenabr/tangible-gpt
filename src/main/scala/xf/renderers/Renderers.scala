@@ -5,7 +5,7 @@ import xf.model.Table.{Cell, Column, Row}
 import xf.model.Table.Cell.{BooleanCell, NumberCell, SingleChoiceCell, TextCell}
 import xf.model.Table.Column.{BooleanColumn, NumberColumn, SingleChoiceColumn, TextColumn}
 
-object Renderers {
+object Renderers:
 
   /* General-purpose request rendering */
 
@@ -31,5 +31,3 @@ object Renderers {
     case TextColumn(name)                  => s"$name: String"
     case SingleChoiceColumn(name, options) => s"$name: One of the following values: ${options.mkString(", ")}"
   }
-
-}

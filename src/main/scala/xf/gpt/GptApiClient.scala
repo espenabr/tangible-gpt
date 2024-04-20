@@ -24,7 +24,7 @@ class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String):
       messages: List[Message],
       tools: Option[List[Tool]] = None
   ): F[CompletionResponse] =
-    val body           = CompletionRequest("gpt-4", messages, tools)
+    val body = CompletionRequest("gpt-4", messages, tools)
 
     val request = Request[F](
       method = Method.POST,
@@ -199,9 +199,9 @@ object GptApiClient:
     object CompletionRequest:
       given Encoder[CompletionRequest] = Encoder { r =>
         Json.obj(
-          "model"           := r.model,
-          "messages"        := r.messages,
-          "tools"           := r.tools
+          "model"    := r.model,
+          "messages" := r.messages,
+          "tools"    := r.tools
 //          "response_format" := r.responseFormat
         )
       }
@@ -270,10 +270,9 @@ object GptApiClient:
         }
       }
 
-      // TODO make Message available from Choice
-      enum Choice:
-        case StopChoice(index: Int, message: ContentMessage)
-        case ToolCallsChoice(index: Int, message: ToolCallsMessage)
+      enum Choice(val message: Message):
+        case StopChoice(index: Int, override val message: ContentMessage)        extends Choice(message)
+        case ToolCallsChoice(index: Int, override val message: ToolCallsMessage) extends Choice(message)
 
       object Choice:
         given Decoder[Choice] = Decoder { c =>

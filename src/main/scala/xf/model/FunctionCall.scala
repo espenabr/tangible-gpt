@@ -23,3 +23,6 @@ enum Param:
       description: String,
       _enum: List[String]
   )
+
+enum ReasoningStrategy:
+  case None, ThinkStepByStep, SuggestMultipleAndPickOne
