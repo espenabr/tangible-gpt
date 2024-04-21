@@ -17,6 +17,18 @@ import xf.model.{ChatResponse, FunctionCall, InteractionHandler, ReasoningStrate
 
 class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
 
+  /**
+   * Interact with GPT
+   *
+   * @param requestValue value for request
+   * @param handler interaction handler to use
+   * @param functionCalls available functions that GPT can call if feasible
+   * @param history history of all previous messages
+   * @param reasoningStrategy custom reasoning strategy to improve the solve rate. ReasoningStrategy.None means to custom strategy
+   * @tparam A request type
+   * @tparam B response type
+   * @return response
+   */
   def chat[A, B](
       requestValue: A,
       handler: InteractionHandler[A, B],
@@ -130,6 +142,13 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       val reply: Message = response.choices.last.message
       SimpleChatResponse(reply, history :+ message :+ reply)
 
+  /**
+   * Interact with GPT using plain text
+   *
+   * @param message message to send
+   * @param history all previous messages in conversation
+   * @return response from GPT
+   */
   def plainTextChat(
       message: Message,
       history: List[Message] = List.empty
