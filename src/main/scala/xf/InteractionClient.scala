@@ -55,14 +55,16 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
                              userContentMessage(
                                s"""Give me an answer.
                                     |${handler.responseFormatDescription(requestValue)}""".stripMargin
-                             )
+                             ),
+                             response.history
                            )
                          case SuggestMultipleAndPickOne =>
                            plainTextChat(
                              userContentMessage(
                                s"""Pick the best answer.
                                     |${handler.responseFormatDescription(requestValue)}""".stripMargin
-                             )
+                             ),
+                             response.history
                            )
                          case None                      =>
                            SimpleChatResponse(response.message, response.history).pure[F]
