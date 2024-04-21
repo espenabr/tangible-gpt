@@ -10,7 +10,7 @@ import io.circe.syntax.*
 import cats.effect.Concurrent
 import xf.gpt.GptApiClient.Common.Message.{ContentMessage, ToolCallsMessage}
 import xf.gpt.GptApiClient.Common.Message
-import xf.gpt.GptApiClient.Request.{CompletionRequest, ResponseFormat, Tool}
+import xf.gpt.GptApiClient.Request.{CompletionRequest, Tool}
 import xf.gpt.GptApiClient.Request.Property.{EnumProperty, IntegerProperty, StringProperty}
 import xf.gpt.GptApiClient.Response.FinishReason.{CompletionResponse, ToolCall}
 
@@ -83,10 +83,10 @@ object GptApiClient:
           )
         case ResultFromToolMessage(role, name, content, toolCallId) =>
           Json.obj(
+            "tool_call_id" := toolCallId,
             "role"         := role,
             "name"         := name,
-            "content"      := content,
-            "tool_call_id" := toolCallId
+            "content"      := content
           )
       }
 
