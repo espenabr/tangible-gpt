@@ -20,6 +20,15 @@ class GptApiClient[F[_]: Concurrent](client: Client[F], val openAiKey: String):
 
   given EntityDecoder[F, CompletionResponse] = jsonOf[F, CompletionResponse]
 
+  /** Request to GPT Chat completion API
+   *
+    * @param messages
+    *   all messages in conversation
+    * @param tools
+    *   functions that GPT may call if it finds it feasible
+    * @return
+    *   response
+    */
   def chatCompletions(
       messages: List[Message],
       tools: Option[List[Tool]] = None
@@ -228,7 +237,7 @@ object GptApiClient:
           yield CompletionResponse(id, model, choices, usage)
         }
 
-      case class ToolCallFunction(name: String, arguments: String) // TODO Json must be decoded
+      case class ToolCallFunction(name: String, arguments: String)
       object ToolCallFunction:
         given Decoder[ToolCallFunction] = Decoder { c =>
           for

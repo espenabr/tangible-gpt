@@ -21,10 +21,11 @@ object Common:
     new InteractionClient[IO](new GptApiClient[IO](client, apiKey))
 
   def extractKey(args: List[String]): String =
-    if args.nonEmpty && args.head.startsWith("sk-") then args.head
-    else
-      println("OpenAPI key must be provided as argument!")
-      ""
+    sys.env.get("GPT_CHAT_SEMIAUTOMATION_API_KEY") match
+      case Some(key) => key
+      case None =>
+        println("OpenAPI key must be provided as argument!")
+        ""
 
   def msg(content: String) =
     ContentMessage(User, content)

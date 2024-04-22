@@ -11,6 +11,7 @@ An abstraction layer of building blocks on top of the existing API to simplify a
 - Simple command-line integration for playing around, but intended as a library for different applications
 - Scala client for the standard chat completion HTTP API
 - Simplify GPT4's function calling feature by binding to Scala functions
+- Automatically use different strategies to make GPT reason better and improve answers
 
 ### Purpose
 
