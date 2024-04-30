@@ -15,7 +15,6 @@ object ResponseAsTable:
   )
 
   val tableHandler = new InteractionHandler[TabularDataRequest, Table](
-    "",
     _.prompt,
     r => specifyTableFormat(r.columns),
     (r, s) => Parsers.parseTable(r.columns)(s)

@@ -14,7 +14,7 @@ object FunctionCalling extends IOApp:
     .use { client =>
       val ic = createInteractionClient(client, extractKey(args))
 
-      val handler = new InteractionHandler[String, String]("", s => s, s => s, (a, b) => Some(b))
+      val handler = new InteractionHandler[String, String](s => s, s => s, (a, b) => Some(b))
 
       def sum(a: Int, b: Int) = a + b
 

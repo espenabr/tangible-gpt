@@ -51,24 +51,24 @@ object RequestQuestions:
 
   val requestFollowupQuestionsHandler: InteractionHandler[QuestionExpectingFollowupQuestions, List[QuestionFromGpt]] =
     new InteractionHandler[QuestionExpectingFollowupQuestions, List[QuestionFromGpt]](
-      "Ask me followup questions to be able to give me a better answer.",
       q =>
         q.noOfQuestions match
           case Some(n) => s"There should be $n questions in total."
           case None    => ""
       ,
       q => responseFormatPrompt(q.expectedQuestionType, q.noOfQuestions),
-      (q, s) => parseQuestions(q.expectedQuestionType, s)
+      (q, s) => parseQuestions(q.expectedQuestionType, s),
+      objective = Some("Ask me followup questions to be able to give me a better answer.")
     )
 
   val requestQuizQuestions: InteractionHandler[QuizRequest, List[QuestionFromGpt]] =
     new InteractionHandler[QuizRequest, List[QuestionFromGpt]](
-      s"I want you to be a quiz master and ask me questions.",
       q => s"""Topic: ${q.topic}
            |Difficulty: ${q.difficulty.toString}
            |${q.noOfQuestions.map(n => s"Number of questions: $n").getOrElse("")}""".stripMargin,
       q => responseFormatPrompt(q.expectedQuestionType, q.noOfQuestions),
-      (q, s) => parseQuestions(q.expectedQuestionType, s)
+      (q, s) => parseQuestions(q.expectedQuestionType, s),
+      objective = Some(s"I want you to be a quiz master and ask me questions.")
     )
 
   private def parseQuestions(questionType: QuestionType, s: String): Option[List[QuestionFromGpt]] =

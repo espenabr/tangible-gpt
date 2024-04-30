@@ -23,10 +23,10 @@ object AnswerQuestions:
     case AnswerToMultipleChoiceQuestionFromGpt(question: MultipleChoiceQuestionFromGpt, answerIndices: Set[Int])
 
   val answerQuestionsHandler = new InteractionHandler[List[AnswerToQuestionFromGpt], String](
-    "Here are the answers to the questions",
     renderAnswers,
     _ => "",
-    (_, s) => Some(s)
+    (_, s) => Some(s),
+    objective = Some("Here are the answers to the questions")
   )
 
   private def renderAnswers(answers: List[AnswerToQuestionFromGpt]) =

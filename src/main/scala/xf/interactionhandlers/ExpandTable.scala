@@ -20,7 +20,6 @@ object ExpandTable:
   )
 
   val addColumnToTableHandler = new InteractionHandler[AddColumn, Table](
-    "Expand this table with another column",
     e => s"""${Renderers.renderTable(e.table)}
             |
             |Expand it with another column: ${describeColumn(e.addColumn)}
@@ -28,16 +27,18 @@ object ExpandTable:
             |""".stripMargin,
     e => s"""The response new table should have this format
             |${ResponseAsTable.specifyTableFormat(e.table.columns :+ e.addColumn)}""".stripMargin,
-    (e, s) => Parsers.parseTable(e.table.columns :+ e.addColumn)(s)
+    (e, s) => Parsers.parseTable(e.table.columns :+ e.addColumn)(s),
+    objective = Some("Expand this table with another column")
   )
 
   val addRowToTableHandler = new InteractionHandler[AddRow, Table](
-    "Expand this table with another row",
     e => s"""${renderTable(e.table)}
             |
             |Expand it with another row: ${e.rowDescription}
             |""".stripMargin,
     e => s"""The response new table should have this format
             |${ResponseAsTable.specifyTableFormat(e.table.columns)}""".stripMargin,
-    (e, s) => Parsers.parseTable(e.table.columns)(s)
+    (e, s) => Parsers.parseTable(e.table.columns)(s),
+    objective = Some("Expand this table with another row"),
+
   )

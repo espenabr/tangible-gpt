@@ -17,7 +17,7 @@ object ResponseAsJsonArray extends IOApp:
       .use { client =>
         val ic      = createInteractionClient(client, extractKey(args))
         val example = Person("Jose", "Spain", 52)
-        val handler = RequestJsonArray.createHandler("List of people", example)
+        val handler = RequestJsonArray.createHandler(example)
 
         for
           response <- ic.chat("Give me a list of random people", handler)
