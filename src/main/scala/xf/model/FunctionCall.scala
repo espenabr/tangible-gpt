@@ -25,4 +25,4 @@ enum Param:
   )
 
 enum ReasoningStrategy:
-  case None, ThinkStepByStep, SuggestMultipleAndPickOne
+  case Simple, ThinkStepByStep, SuggestMultipleAndPickOne

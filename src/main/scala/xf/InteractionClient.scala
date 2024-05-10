@@ -3,6 +3,10 @@ package xf
 import xf.gpt.GptApiClient
 import cats.effect.Concurrent
 import cats.implicits.*
+import io.circe
+import io.circe.{Decoder, Encoder}
+import io.circe.parser.decode
+import io.circe.syntax.*
 import xf.gpt.GptApiClient.Common.{Message, Role}
 import xf.gpt.GptApiClient.Common.Message.{ContentMessage, ResultFromToolMessage, ToolCallsMessage}
 import xf.gpt.GptApiClient.Common.Role.User
@@ -11,11 +15,214 @@ import xf.gpt.GptApiClient.Request.{Parameters, Property, RequestFunction, Tool}
 import xf.gpt.GptApiClient.Response.FinishReason
 import xf.gpt.GptApiClient.Response.FinishReason.Choice.{StopChoice, ToolCallsChoice}
 import xf.gpt.GptApiClient.Response.FinishReason.CompletionResponse
+import xf.model.FailedInteraction.ParseError
 import xf.model.Param.{EnumParam, IntegerParam, StringParam}
-import xf.model.ReasoningStrategy.{None, SuggestMultipleAndPickOne, ThinkStepByStep}
-import xf.model.{ChatResponse, FunctionCall, InteractionHandler, ReasoningStrategy, SimpleChatResponse}
+import xf.model.ReasoningStrategy.{Simple, SuggestMultipleAndPickOne, ThinkStepByStep}
+import xf.model.{
+  ChatResponse,
+  FailedInteraction,
+  FunctionCall,
+  InteractionHandler,
+  ReasoningStrategy,
+  SimpleChatResponse,
+  TangibleEitherResponse,
+  TangibleOptionResponse,
+  TangibleResponse
+}
+
+import scala.util.Try
 
 class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
+
+  def expectJson[R](
+      prompt: String,
+      example: R,
+      history: List[Message] = List.empty
+  )(implicit
+      decoder: Decoder[R],
+      encoder: Encoder[R]
+  ): F[Either[FailedInteraction, TangibleResponse[R]]] =
+    def encodeToJson(value: R): String = value.asJson.noSpaces
+
+    val message = userContentMessage(
+      s"""$prompt
+         |
+         |There response must be in valid JSON and only JSON, nothing else
+         |
+         |Example:
+         |${encodeToJson(example)}""".stripMargin
+    )
+    plainTextChat(message, history).map { response =>
+      decode[R](response.message.content)
+        .map { decoded =>
+          TangibleResponse[R](
+            decoded,
+            response.message.content,
+            response.history
+          )
+        }
+        .leftMap(_ => ParseError(response.message.content, response.history))
+    }
+
+  def expectJsonOption[R](prompt: String, example: R, history: List[Message] = List.empty)(implicit
+      decoder: Decoder[R],
+      encoder: Encoder[R]
+  ): F[Either[FailedInteraction, TangibleOptionResponse[R]]] =
+    def encodeToJson(value: R): String = value.asJson.noSpaces
+
+    val message = userContentMessage(
+      s"""$prompt
+         |
+         |If you don't, know the answer, simply say "I don't know". Otherwise, the response must be in valid JSON and
+         |only JSON, nothing else.
+         |
+         |Example:
+         |${encodeToJson(example)}""".stripMargin
+    )
+    plainTextChat(message, history).map { response =>
+      val dontKnow: Boolean = response.message.content.toLowerCase.trim.contains("i don't know")
+
+      if dontKnow then Right(TangibleOptionResponse[R](None, response.message.content, response.history))
+      else
+        decode[R](response.message.content)
+          .map { decoded =>
+            TangibleOptionResponse[R](
+              Some(decoded),
+              response.message.content,
+              response.history
+            )
+          }
+          .leftMap(_ => ParseError(response.message.content, response.history))
+    }
+
+  def expectJsonEither[L, R](prompt: String, leftExample: L, rightExample: R, history: List[Message])(implicit
+      leftDecoder: Decoder[L],
+      leftEncoder: Encoder[L],
+      rightDecoder: Decoder[R],
+      rightEncoder: Encoder[R]
+  ): F[Either[FailedInteraction, TangibleEitherResponse[L, R]]] =
+    def encodeLeftToJson(value: L): String  = value.asJson.noSpaces
+    def encodeRightToJson(value: R): String = value.asJson.noSpaces
+
+    val message = userContentMessage(
+      s"""$prompt
+         |
+         |The response must be valid JSON and JSON only.
+         |Depending on the answer, it may either have this format (example): ${encodeLeftToJson(leftExample)}
+         |Or this format (example): ${encodeRightToJson(rightExample)}""".stripMargin
+    )
+    plainTextChat(message, history).map { response =>
+      val decodedLeft: Either[circe.Error, L]  = decode[L](response.message.content)
+      val decodedRight: Either[circe.Error, R] = decode[R](response.message.content)
+      def toResponse(value: Either[L, R])      = TangibleEitherResponse(value, response.message.content, response.history)
+
+      (decodedLeft.toOption.map(l => toResponse(Left(l))) orElse decodedRight.toOption.map(r => toResponse(Right(r))))
+        .toRight(ParseError(response.message.content, response.history))
+    }
+
+  def expectPlainText(prompt: String, history: List[Message] = List.empty): F[ChatResponse[String]] =
+    val message = userContentMessage(prompt)
+    plainTextChat(message, history).map { response =>
+      ChatResponse[String](
+        Some(response.message.content),
+        response.message.content,
+        response.history
+      )
+    }
+
+  def expectPlainTextOption(
+      prompt: String,
+      history: List[Message] = List.empty
+  ): F[Either[FailedInteraction, TangibleOptionResponse[String]]] =
+    val message = userContentMessage(s"""$prompt
+         |
+         |If you don't know the answer, simply say "I don't know"
+         |""".stripMargin)
+    plainTextChat(message, history).map { response =>
+      val dontKnow: Boolean = response.message.content.toLowerCase.trim.contains("i don't know")
+      val value             = if dontKnow then None else Some(response.message.content)
+      Right(
+        TangibleOptionResponse[String](
+          value,
+          response.message.content,
+          response.history
+        )
+      )
+    }
+
+  def expectBoolean(
+      prompt: String,
+      history: List[Message] = List.empty
+  ): F[Either[FailedInteraction, TangibleResponse[Boolean]]] =
+    val message = userContentMessage(s"""$prompt
+         |
+         |I only want a yes or no answer, nothing else. Reply with either "yes" or "no"""".stripMargin)
+    plainTextChat(message, history).map { response =>
+      parseBoolean(response.message.content) match
+        case Some(b) => Right(TangibleResponse[Boolean](b, response.message.content, response.history))
+        case None    => Left(ParseError(response.message.content, response.history))
+    }
+
+  def expectBooleanOption(
+      prompt: String,
+      history: List[Message] = List.empty
+  ): F[Either[FailedInteraction, TangibleOptionResponse[Boolean]]] =
+    val message = userContentMessage(s"""$prompt
+         |
+         |If you don't know the answer, simply reply with "Don't know", nothing else.
+         |I only want a yes or no answer, nothing else. Reply with either "yes" or "no"""".stripMargin)
+    plainTextChat(message, history).map { response =>
+      val dontKnow: Boolean                  = response.message.content.toLowerCase.trim.contains("i don't know")
+      def toResponse(value: Option[Boolean]) =
+        TangibleOptionResponse[Boolean](value, response.message.content, response.history)
+
+      if dontKnow then Right(toResponse(None))
+      else
+        parseBoolean(response.message.content) match
+          case Some(b) => Right(toResponse(Some(b)))
+          case None    => Left(ParseError(response.message.content, response.history))
+    }
+
+  def expectDouble(
+      prompt: String,
+      history: List[Message] = List.empty
+  ): F[Either[FailedInteraction, TangibleResponse[Double]]] =
+    val message = userContentMessage(s"""$prompt
+         |
+         |I only want a number as an answer, nothing else.""".stripMargin)
+    plainTextChat(message, history).map { response =>
+      Try { response.message.content.toDouble }.toOption
+        .map { d =>
+          Right(TangibleResponse(d, response.message.content, response.history))
+        }
+        .getOrElse(Left(ParseError(response.message.content, response.history)))
+    }
+
+  def expectDoubleOption(
+      prompt: String,
+      history: List[Message] = List.empty
+  ): F[Either[FailedInteraction, TangibleOptionResponse[Double]]] =
+    val message = userContentMessage(s"""$prompt
+         |
+         |If you don't know the answer, simply reply with "Don't know", nothing else.
+         |I only want a number as an answer, nothing else.""".stripMargin)
+    plainTextChat(message, history).map { response =>
+      val content                           = response.message.content
+      def toResponse(value: Option[Double]) = TangibleOptionResponse(value, content, response.history)
+
+      if content.toLowerCase.contains("i don't know") then Right(toResponse(None))
+      else
+        Try { content.toDouble }.toOption
+          .map { d =>
+            Right(TangibleOptionResponse(Some(d), content, response.history))
+          }
+          .getOrElse(Left(ParseError(content, response.history)))
+    }
+
+  private def parseBoolean(s: String): Option[Boolean] = s.toLowerCase match
+    case "false" | "no" | "n" | "0" => Some(false)
+    case "true" | "yes" | "y" | "1" => Some(true)
+    case _                          => None
 
   /** Interact with GPT
     *
@@ -41,7 +248,7 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       handler: InteractionHandler[A, B],
       functionCalls: List[FunctionCall[F]] = List.empty,
       history: List[Message] = List.empty,
-      reasoningStrategy: ReasoningStrategy = None
+      reasoningStrategy: ReasoningStrategy = Simple
   ): F[ChatResponse[B]] =
     val startOfPrompt =
       s"""${handler.objective}
@@ -49,7 +256,7 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
          |${handler.render(requestValue)}""".stripMargin
 
     val prompt = reasoningStrategy match
-      case None                      =>
+      case Simple                    =>
         s"""$startOfPrompt
            |
            |${handler.responseFormatDescription(requestValue)}""".stripMargin
@@ -85,14 +292,14 @@ class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
                              ),
                              response.history
                            )
-                         case None                      =>
+                         case Simple                    =>
                            SimpleChatResponse(response.message, response.history).pure[F]
     yield ChatResponse[B](
       handler.parse(requestValue, finalResponse.message.content),
       finalResponse.message.content,
       reasoningStrategy match
-        case None => response.history
-        case _    => finalResponse.history
+        case Simple => response.history
+        case _      => finalResponse.history
     )
 
   private def userContentMessage(s: String) = ContentMessage(User, s)
