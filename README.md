@@ -118,4 +118,4 @@ val result: IO[Either[FailedInteraction, ActivityDetails]] =
   yield response2.value).value
 ```
 
-Also, have a look in the `examples` folder for more examples of usage
+For more examples of usage, have a look in the `examples` folder!
