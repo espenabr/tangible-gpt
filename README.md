@@ -67,7 +67,6 @@ val sumFunctionCall: FunctionCall[IO] =
     s => IO.fromEither(decode[SumParams](s)).map { params => sum(params.a, params.b).toString }
   )
 
-
 tc.expectDouble(
   "What is What is 87878 + 23255?",
   functionCalls = List(sumFunctionCall)
@@ -77,6 +76,14 @@ tc.expectDouble(
 ```
 
 ### Custom reasoning strategy
+```scala 3
+tc.expectDouble(
+  "A juggler has 16 balls. Half of the balls are golf balls and half of the golf balls are blue. How many blue golf balls are there?",
+  reasoningStrategy = ReasoningStrategy.ThinkStepByStep
+).map { (response: Either[FailedInteraction, TangibleResponse[Double]]) =>
+  ???
+}
+```
 
 ### Using EitherT
 
