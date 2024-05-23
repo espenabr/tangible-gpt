@@ -14,7 +14,7 @@ object Chat extends IOApp:
    */
 
   def run(args: List[String]): IO[ExitCode] = clientResource
-    .use { client => chat(createTangibleClient(client, extractKey(args)), List.empty) }
+    .use { client => chat(createTangibleClient(client, extractKey()), List.empty) }
 
   def chat(tc: TangibleClient[IO], history: List[Message]): IO[ExitCode] =
     for

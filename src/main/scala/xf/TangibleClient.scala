@@ -105,7 +105,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       prompt: String,
       leftExample: L,
       rightExample: R,
-      history: List[Message],
+      history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
       reasoningStrategy: ReasoningStrategy = Simple
   )(implicit

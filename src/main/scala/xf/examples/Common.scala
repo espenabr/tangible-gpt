@@ -20,7 +20,7 @@ object Common:
   ): TangibleClient[IO] =
     new TangibleClient[IO](new GptApiClient[IO](client, apiKey))
 
-  def extractKey(args: List[String]): String =
+  def extractKey(): String =
     sys.env.get("GPT_CHAT_SEMIAUTOMATION_API_KEY") match
       case Some(key) => key
       case None =>

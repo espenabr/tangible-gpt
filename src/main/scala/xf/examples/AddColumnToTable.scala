@@ -15,7 +15,7 @@ object AddColumnToTable extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val ic = createTangibleClient(client, extractKey(args))
+      val ic = createTangibleClient(client, extractKey())
       for {
         addedColumn <- ic.chat(
                          AddColumn(

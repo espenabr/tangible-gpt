@@ -13,7 +13,7 @@ object Quiz extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = createTangibleClient(client, extractKey(args))
+      val tc = createTangibleClient(client, extractKey())
       for {
         topic     <- prompt("Quiz topic")
         questions <- tc.chat(QuizRequest(topic, Medium, SingleChoiceQuestions(Some(3)), Some(6)), requestQuizQuestions)

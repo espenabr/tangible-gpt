@@ -14,7 +14,7 @@ object FunctionCalling extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = createTangibleClient(client, extractKey(args))
+      val tc = createTangibleClient(client, extractKey())
 
       def sum(a: Int, b: Int): Int = a + b
 

@@ -75,6 +75,18 @@ tc.expectDouble(
 }
 ```
 
+### With Either type
+
+```scala 3
+tc.expectJsonEither(
+  "How much does a fish weigh?",
+  Answer("answer"),
+  Clarifications(List("question", "question"))
+).map { (response: Either[FailedInteraction, TangibleEitherResponse[Answer, Clarifications]]) =>
+  ???
+}
+```
+
 ### Custom reasoning strategy
 ```scala 3
 tc.expectDouble(
@@ -86,5 +98,8 @@ tc.expectDouble(
 ```
 
 ### Using EitherT
+```scala 3
+
+```
 
 Also, have a look in the `examples` folder for more examples of usage

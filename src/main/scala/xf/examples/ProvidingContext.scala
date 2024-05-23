@@ -13,7 +13,7 @@ object ProvidingContext extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = createTangibleClient(client, extractKey(args))
+      val tc = createTangibleClient(client, extractKey())
       for {
         context  <- readFileContent("README.md")
         reply    <- tc.plainTextChat(msg(s"""I will provide some information relevant for later.

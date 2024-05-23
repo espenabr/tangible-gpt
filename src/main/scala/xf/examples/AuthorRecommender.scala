@@ -25,7 +25,7 @@ object AuthorRecommender extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val ic = createTangibleClient(client, extractKey(args))
+      val ic = createTangibleClient(client, extractKey())
       for {
         input              <- prompt("List authors that you like, separated by comma")
         authors             = FavoriteAuthors(input.split(",").toList.map(_.strip()))

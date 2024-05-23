@@ -15,7 +15,7 @@ object ResponseAsJsonArray extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     clientResource
       .use { client =>
-        val ic      = createTangibleClient(client, extractKey(args))
+        val ic      = createTangibleClient(client, extractKey())
         val example = Person("Jose", "Spain", 52)
         val handler = RequestJsonArray.createHandler(example)
 

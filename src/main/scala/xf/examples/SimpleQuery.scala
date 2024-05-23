@@ -9,7 +9,7 @@ object SimpleQuery extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = createTangibleClient(client, extractKey(args))
+      val tc = createTangibleClient(client, extractKey())
       for
         prompt <- prompt("Prompt")
         answer <- tc.plainTextChat(msg(prompt))

@@ -19,7 +19,7 @@ object JsonResponseAfterFunctionCall extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     clientResource
       .use { client =>
-        val tc      = createTangibleClient(client, extractKey(args))
+        val tc      = createTangibleClient(client, extractKey())
         val example = Result(1234)
 
         def concatenateNumbers(a: Int, b: Int) = (a.toString + b.toString).toInt

@@ -18,7 +18,7 @@ object TabularData extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = createTangibleClient(client, extractKey(args))
+      val tc = createTangibleClient(client, extractKey())
       for
         response  <- tc.chat(
                        TabularDataRequest("Characters from the Donald Duck & co. universe.", tableColumns),

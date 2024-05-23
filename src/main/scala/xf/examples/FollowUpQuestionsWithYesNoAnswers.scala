@@ -25,7 +25,7 @@ object FollowUpQuestionsWithYesNoAnswers extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = createTangibleClient(client, extractKey(args))
+      val tc = createTangibleClient(client, extractKey())
       for
         question         <- prompt("Ask a questions and get follow-up questions")
         questionsFromGpt <- tc.chat(
