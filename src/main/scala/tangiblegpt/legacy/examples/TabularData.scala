@@ -2,8 +2,8 @@ package tangiblegpt.legacy.examples
 
 import cats.effect.std.Console
 import cats.effect.{ExitCode, IO, IOApp}
-import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
-import tangiblegpt.legacy.interactionhandlers.ResponseAsTable.{TabularDataRequest, tableHandler}
+import tangiblegpt.examples.Common.{clientResource, createLegacyInteractionClient, extractKey}
+import tangiblegpt.legacy.interactionhandlers.ResponseAsTable.{tableHandler, TabularDataRequest}
 import tangiblegpt.model.Table
 import tangiblegpt.model.Table.Cell.{BooleanCell, SingleChoiceCell, TextCell}
 import tangiblegpt.model.Table.{Cell, Column, Row}
@@ -19,9 +19,9 @@ object TabularData extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = createTangibleClient(client, extractKey())
+      val ic = createLegacyInteractionClient(client, extractKey())
       for
-        response  <- tc.chat(
+        response  <- ic.chat(
                        TabularDataRequest("Characters from the Donald Duck & co. universe.", tableColumns),
                        tableHandler
                      )

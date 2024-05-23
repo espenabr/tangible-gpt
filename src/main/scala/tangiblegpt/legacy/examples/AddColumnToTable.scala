@@ -2,9 +2,14 @@ package tangiblegpt.legacy.examples
 
 import cats.effect.std.Console
 import cats.effect.{ExitCode, IO, IOApp}
-import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
-import tangiblegpt.legacy.interactionhandlers.ExpandTable.{AddColumn, AddRow, addColumnToTableHandler, addRowToTableHandler}
-import tangiblegpt.legacy.interactionhandlers.ResponseAsTable.{TabularDataRequest, tableHandler}
+import tangiblegpt.examples.Common.{clientResource, createLegacyInteractionClient, extractKey}
+import tangiblegpt.legacy.interactionhandlers.ExpandTable.{
+  addColumnToTableHandler,
+  addRowToTableHandler,
+  AddColumn,
+  AddRow
+}
+import tangiblegpt.legacy.interactionhandlers.ResponseAsTable.{tableHandler, TabularDataRequest}
 import tangiblegpt.model.Table
 import tangiblegpt.model.Table.Cell.{SingleChoiceCell, TextCell}
 import tangiblegpt.model.Table.Column.{NumberColumn, SingleChoiceColumn, TextColumn}
@@ -14,7 +19,7 @@ object AddColumnToTable extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val ic = createTangibleClient(client, extractKey())
+      val ic = createLegacyInteractionClient(client, extractKey())
       for {
         addedColumn <- ic.chat(
                          AddColumn(

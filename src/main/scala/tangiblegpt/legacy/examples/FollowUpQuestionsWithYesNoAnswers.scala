@@ -4,10 +4,14 @@ import cats.effect.std.Console
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits.*
 import tangiblegpt.Input.{collectAnswers, prompt}
-import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
+import tangiblegpt.examples.Common.{clientResource, createLegacyInteractionClient, createTangibleClient, extractKey}
 import tangiblegpt.legacy.interactionhandlers.AnswerQuestions.answerQuestionsHandler
 import tangiblegpt.legacy.interactionhandlers.RequestQuestions.QuestionType.YesNoQuestions
-import tangiblegpt.legacy.interactionhandlers.RequestQuestions.{QuestionExpectingFollowupQuestions, QuestionType, requestFollowupQuestionsHandler}
+import tangiblegpt.legacy.interactionhandlers.RequestQuestions.{
+  requestFollowupQuestionsHandler,
+  QuestionExpectingFollowupQuestions,
+  QuestionType
+}
 
 object FollowUpQuestionsWithYesNoAnswers extends IOApp:
 
@@ -21,15 +25,15 @@ object FollowUpQuestionsWithYesNoAnswers extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = createTangibleClient(client, extractKey())
+      val ic = createLegacyInteractionClient(client, extractKey())
       for
         question         <- prompt("Ask a questions and get follow-up questions")
-        questionsFromGpt <- tc.chat(
+        questionsFromGpt <- ic.chat(
                               QuestionExpectingFollowupQuestions(question, YesNoQuestions, None),
                               requestFollowupQuestionsHandler
                             )
         myAnswers        <- collectAnswers(questionsFromGpt.value.get)
-        answerFromGpt    <- tc.chat(
+        answerFromGpt    <- ic.chat(
                               myAnswers,
                               answerQuestionsHandler,
                               history = questionsFromGpt.history

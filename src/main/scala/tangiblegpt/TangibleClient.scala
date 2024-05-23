@@ -51,18 +51,17 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
          |
          |Example:
          |${encodeToJson(example)}""".stripMargin
-    val message                   = userContentMessage(initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)))
 
-    interact(message, history, functionCalls, reasoningStrategy, Some(responseFormatDescription)).map { response =>
-      decode[R](response.message.content)
-        .map { decoded =>
-          TangibleResponse[R](
-            decoded,
-            response.message.content,
-            response.history
-          )
-        }
-        .leftMap(_ => ParseError(response.message.content, response.history))
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      decode[R](r.value)
+        .map { decoded => TangibleResponse[R](decoded, r.value, r.history) }
+        .leftMap(_ => ParseError(r.value, r.history))
     }
 
   def expectJsonOption[R](
@@ -82,24 +81,23 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
          |
          |Example:
          |${encodeToJson(example)}""".stripMargin
-    val message                        = userContentMessage(initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)))
 
-    interact(message, history, functionCalls, reasoningStrategy, Some(responseFormatDescription)).map { response =>
-      if iDontKnow(response) then Right(TangibleOptionResponse[R](None, response.message.content, response.history))
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      if iDontKnow(r) then Right(TangibleOptionResponse[R](None, r.value, r.history))
       else
-        decode[R](response.message.content)
-          .map { decoded =>
-            TangibleOptionResponse[R](
-              Some(decoded),
-              response.message.content,
-              response.history
-            )
-          }
-          .leftMap(_ => ParseError(response.message.content, response.history))
+        decode[R](r.value)
+          .map { decoded => TangibleOptionResponse[R](Some(decoded), r.value, r.history) }
+          .leftMap(_ => ParseError(r.value, r.history))
     }
 
-  private def iDontKnow(response: SimpleChatResponse): Boolean =
-    response.message.content.toLowerCase.trim.contains("i don't know")
+  private def iDontKnow(response: TangibleResponse[String]): Boolean =
+    response.value.toLowerCase.trim.contains("i don't know")
 
   def expectJsonEither[L, R](
       prompt: String,
@@ -121,15 +119,20 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       s"""The response must be valid JSON and JSON only.
          |Depending on the answer, it may either have this format (example): ${encodeLeftToJson(leftExample)}
          |Or this format (example): ${encodeRightToJson(rightExample)}""".stripMargin
-    val message                   = userContentMessage(initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)))
 
-    interact(message, history, functionCalls, reasoningStrategy, Some(responseFormatDescription)).map { response =>
-      val decodedLeft: Either[circe.Error, L]  = decode[L](response.message.content)
-      val decodedRight: Either[circe.Error, R] = decode[R](response.message.content)
-      def toResponse(value: Either[L, R])      = TangibleEitherResponse(value, response.message.content, response.history)
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      val decodedLeft: Either[circe.Error, L]  = decode[L](r.value)
+      val decodedRight: Either[circe.Error, R] = decode[R](r.value)
+      def toResponse(value: Either[L, R])      = TangibleEitherResponse(value, r.value, r.history)
 
       (decodedLeft.toOption.map(l => toResponse(Left(l))) orElse decodedRight.toOption.map(r => toResponse(Right(r))))
-        .toRight(ParseError(response.message.content, response.history))
+        .toRight(ParseError(r.value, r.history))
     }
 
   def expectPlainText(
@@ -138,14 +141,13 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       functionCalls: List[FunctionCall[F]] = List.empty,
       reasoningStrategy: ReasoningStrategy = Simple
   ): F[TangibleResponse[String]] =
-    val message = userContentMessage(initialPrompt(reasoningStrategy, prompt, None))
-    interact(message, history, functionCalls, reasoningStrategy, None).map { response =>
-      TangibleResponse[String](
-        response.message.content,
-        response.message.content,
-        response.history
-      )
-    }
+    interact(
+      initialPrompt(reasoningStrategy, prompt, None),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      None
+    ).map { r => TangibleResponse[String](r.value, r.value, r.history) }
 
   def expectPlainTextOption(
       prompt: String,
@@ -155,17 +157,16 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
   ): F[Either[FailedInteraction, TangibleOptionResponse[String]]] =
     val responseFormatDescription =
       s"""If you don't know the answer, simply say "I don't know"""".stripMargin
-    val message                   = userContentMessage(initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)))
 
-    interact(message, history, functionCalls, reasoningStrategy, Some(responseFormatDescription)).map { response =>
-      val value = if iDontKnow(response) then None else Some(response.message.content)
-      Right(
-        TangibleOptionResponse[String](
-          value,
-          response.message.content,
-          response.history
-        )
-      )
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      val value = if iDontKnow(r) then None else Some(r.value)
+      Right(TangibleOptionResponse[String](value, r.value, r.history))
     }
 
   def expectBoolean(
@@ -174,13 +175,19 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       functionCalls: List[FunctionCall[F]] = List.empty,
       reasoningStrategy: ReasoningStrategy = Simple
   ): F[Either[FailedInteraction, TangibleResponse[Boolean]]] =
-    val responseFormatDescription = """I only want a yes or no answer, nothing else. Reply with either "yes" or "no""""
-    val message                   = userContentMessage(initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)))
+    val responseFormatDescription =
+      """I only want a yes or no answer, nothing else. Reply with either "yes" or "no""""
 
-    interact(message, history, functionCalls, reasoningStrategy, Some(responseFormatDescription)).map { response =>
-      parseBoolean(response.message.content) match
-        case Some(b) => Right(TangibleResponse[Boolean](b, response.message.content, response.history))
-        case None    => Left(ParseError(response.message.content, response.history))
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      parseBoolean(r.value) match
+        case Some(b) => Right(TangibleResponse[Boolean](b, r.value, r.history))
+        case None    => Left(ParseError(r.value, r.history))
     }
 
   def expectBooleanOption(
@@ -192,17 +199,22 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
     val responseFormatDescription =
       s"""If you don't know the answer, simply reply with "I don't know", nothing else.
          |I only want a yes or no answer, nothing else. Reply with either "yes" or "no"""".stripMargin
-    val message                   = userContentMessage(initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)))
 
-    interact(message, history, functionCalls, reasoningStrategy, Some(responseFormatDescription)).map { response =>
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
       def toResponse(value: Option[Boolean]) =
-        TangibleOptionResponse[Boolean](value, response.message.content, response.history)
+        TangibleOptionResponse[Boolean](value, r.value, r.history)
 
-      if iDontKnow(response) then Right(toResponse(None))
+      if iDontKnow(r) then Right(toResponse(None))
       else
-        parseBoolean(response.message.content) match
+        parseBoolean(r.value) match
           case Some(b) => Right(toResponse(Some(b)))
-          case None    => Left(ParseError(response.message.content, response.history))
+          case None    => Left(ParseError(r.value, r.history))
     }
 
   def expectDouble(
@@ -212,14 +224,17 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       reasoningStrategy: ReasoningStrategy = Simple
   ): F[Either[FailedInteraction, TangibleResponse[Double]]] =
     val responseFormatDescription = "I only want a number (all digits) as an answer, nothing else."
-    val message                   = userContentMessage(initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)))
 
-    interact(message, history, functionCalls, reasoningStrategy, Some(responseFormatDescription)).map { response =>
-      Try { response.message.content.toDouble }.toOption
-        .map { d =>
-          Right(TangibleResponse(d, response.message.content, response.history))
-        }
-        .getOrElse(Left(ParseError(response.message.content, response.history)))
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      Try { r.value.toDouble }.toOption
+        .map { d => Right(TangibleResponse(d, r.value, r.history)) }
+        .getOrElse(Left(ParseError(r.value, r.history)))
     }
 
   def expectDoubleOption(
@@ -231,19 +246,22 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
     val responseFormatDescription =
       s"""If you don't know the answer, simply reply with "I don't know", nothing else.
          |I only want a number as an answer, nothing else.""".stripMargin
-    val message                   = userContentMessage(initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)))
 
-    interact(message, history, functionCalls, reasoningStrategy, Some(responseFormatDescription)).map { response =>
-      val content                           = response.message.content
-      def toResponse(value: Option[Double]) = TangibleOptionResponse(value, content, response.history)
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      val content                           = r.value
+      def toResponse(value: Option[Double]) = TangibleOptionResponse(value, content, r.history)
 
-      if iDontKnow(response) then Right(toResponse(None))
+      if iDontKnow(r) then Right(toResponse(None))
       else
         Try { content.toDouble }.toOption
-          .map { d =>
-            Right(TangibleOptionResponse(Some(d), content, response.history))
-          }
-          .getOrElse(Left(ParseError(content, response.history)))
+          .map { d => Right(TangibleOptionResponse(Some(d), content, r.history)) }
+          .getOrElse(Left(ParseError(content, r.history)))
     }
 
   private def parseBoolean(s: String): Option[Boolean] = s.toLowerCase match
@@ -252,25 +270,93 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
     case _                          => None
 
   private def interact(
-      message: Message,
+      prompt: String,
       history: List[Message],
       functionCalls: List[FunctionCall[F]],
       reasoningStrategy: ReasoningStrategy,
       responseFormatDescription: Option[String]
-  ): F[SimpleChatResponse] =
+  ): F[TangibleResponse[String]] =
     for
-      response <- withPossibleFunctionCalls(message, history, functionCalls)
-
+      response      <- withPossibleFunctionCalls(prompt, history, functionCalls)
       finalResponse <- afterPossibleReasoning(response, reasoningStrategy, responseFormatDescription)
     yield finalResponse
 
   private def withPossibleFunctionCalls(
-      message: Message,
+      prompt: String,
       history: List[Message],
       functionCalls: List[FunctionCall[F]]
-  ): F[SimpleChatResponse] =
-    if functionCalls.isEmpty then plainTextChat(message, history)
-    else chatWithFunctionCalls(message, functionCalls, history)
+  ): F[TangibleResponse[String]] =
+    if functionCalls.isEmpty then expectPlainText(prompt, history = history)
+    else chatWithFunctionCalls(prompt, functionCalls, history)
+
+  private def chatWithFunctionCalls(
+      prompt: String,
+      functionCalls: List[FunctionCall[F]],
+      history: List[Message] = List.empty
+  ): F[TangibleResponse[String]] =
+
+    val message  = userContentMessage(prompt)
+    val messages = history :+ message
+    val tools    = functionCallTools(functionCalls)
+    for
+      initialResponse <- gptApiClient.chatCompletions(messages, Some(tools))
+      response        <-
+        callFunctionIfApplicable(
+          initialResponse,
+          functionCalls,
+          message +: initialResponse.choices.map(_.message)
+        )
+    yield
+      val reply: Message         = response.choices.last.message
+      val history: List[Message] = message +: response.choices.map(_.message)
+      TangibleResponse[String](reply.content, reply.content, history)
+
+  private def callFunctionIfApplicable(
+      initialResponse: CompletionResponse,
+      functionCalls: List[FunctionCall[F]],
+      history: List[Message]
+  ): F[CompletionResponse] =
+    initialResponse.choices.last match
+      case cm: StopChoice                  => initialResponse.pure[F]
+      case ToolCallsChoice(index, message) =>
+        val returnMessages: F[List[Message]] =
+          (for
+            toolCall     <- message.toolCalls
+            functionCall <- functionCalls.filter(_.name === toolCall.function.name)
+          yield
+            val result: F[String] = functionCall.function(toolCall.function.arguments)
+            result.map(r => ResultFromToolMessage(Role.Tool, toolCall.function.name, r, toolCall.id))
+          ).sequence
+
+        returnMessages.flatMap(rm =>
+          gptApiClient.chatCompletions(history ++ rm, Some(functionCallTools(functionCalls)))
+        )
+
+  private def afterPossibleReasoning(
+      response: TangibleResponse[String],
+      reasoningStrategy: ReasoningStrategy,
+      responseFormatDescription: Option[String]
+  ): F[TangibleResponse[String]] =
+    reasoningStrategy match
+      case Simple                    => response.pure[F]
+      case ThinkStepByStep           =>
+        expectPlainText(
+          responseFormatDescription
+            .map(rfd => s"""Give me an answer.
+                             |
+                             |$rfd""".stripMargin)
+            .getOrElse("Give me an answer."),
+          response.history
+        )
+      case SuggestMultipleAndPickOne =>
+        expectPlainText(
+          responseFormatDescription
+            .map(rfd => s"""Pick the best answer.
+                             |
+                             |$responseFormatDescription""".stripMargin)
+            .getOrElse("Pick the best answer."),
+          response.history
+        )
 
   private def initialPrompt(
       reasoningStrategy: ReasoningStrategy,
@@ -294,114 +380,6 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
            |
            |Give me some alternative answers to this that make sense. Enumerate them.""".stripMargin
 
-  /** Interact with GPT
-    *
-    * @param requestValue
-    *   value for request
-    * @param handler
-    *   interaction handler to use
-    * @param functionCalls
-    *   available functions that GPT can call if feasible
-    * @param history
-    *   history of all previous messages
-    * @param reasoningStrategy
-    *   custom reasoning strategy to improve the solve rate. ReasoningStrategy.None means to custom strategy
-    * @tparam A
-    *   request type
-    * @tparam B
-    *   response type
-    * @return
-    *   response
-    */
-  def chat[A, B](
-      requestValue: A,
-      handler: InteractionHandler[A, B],
-      functionCalls: List[FunctionCall[F]] = List.empty,
-      history: List[Message] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
-  ): F[ChatResponse[B]] =
-    val startOfPrompt =
-      s"""${handler.objective}
-         |
-         |${handler.render(requestValue)}""".stripMargin
-
-    val prompt = reasoningStrategy match
-      case Simple                    =>
-        s"""$startOfPrompt
-           |
-           |${handler.responseFormatDescription(requestValue)}""".stripMargin
-      case ThinkStepByStep           =>
-        s"""$startOfPrompt
-           |
-           |Let's think step by step""".stripMargin
-      case SuggestMultipleAndPickOne =>
-        s"""$startOfPrompt
-           |
-           |Give me some alternative answers to this that could make sense. Enumerate them.""".stripMargin
-
-    val message = userContentMessage(prompt)
-
-    for
-      response <- if functionCalls.isEmpty then plainTextChat(message, history)
-                  else chatWithFunctionCalls(message, functionCalls, history)
-
-      finalResponse <- reasoningStrategy match
-                         case ThinkStepByStep           =>
-                           plainTextChat(
-                             userContentMessage(
-                               s"""Give me an answer.
-                                    |${handler.responseFormatDescription(requestValue)}""".stripMargin
-                             ),
-                             response.history
-                           )
-                         case SuggestMultipleAndPickOne =>
-                           plainTextChat(
-                             userContentMessage(
-                               s"""Pick the best answer.
-                                    |${handler.responseFormatDescription(requestValue)}""".stripMargin
-                             ),
-                             response.history
-                           )
-                         case Simple                    =>
-                           SimpleChatResponse(response.message, response.history).pure[F]
-    yield ChatResponse[B](
-      handler.parse(requestValue, finalResponse.message.content),
-      finalResponse.message.content,
-      reasoningStrategy match
-        case Simple => response.history
-        case _      => finalResponse.history
-    )
-
-  private def afterPossibleReasoning(
-      response: SimpleChatResponse,
-      reasoningStrategy: ReasoningStrategy,
-      responseFormatDescription: Option[String]
-  ) =
-    reasoningStrategy match
-      case Simple                    => SimpleChatResponse(response.message, response.history).pure[F]
-      case ThinkStepByStep           =>
-        plainTextChat(
-          userContentMessage(
-            responseFormatDescription
-              .map(rfd => s"""Give me an answer.
-                 |
-                 |$rfd""".stripMargin)
-              .getOrElse("Give me an answer.")
-          ),
-          response.history
-        )
-      case SuggestMultipleAndPickOne =>
-        plainTextChat(
-          userContentMessage(
-            responseFormatDescription
-              .map(rfd => s"""Pick the best answer.
-                 |
-                 |$responseFormatDescription""".stripMargin)
-              .getOrElse("Pick the best answer.")
-          ),
-          response.history
-        )
-
   private def userContentMessage(s: String) = ContentMessage(User, s)
 
   private def functionCallTools(functionCalls: List[FunctionCall[F]]) = functionCalls.map(fc =>
@@ -420,68 +398,3 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       )
     )
   )
-
-  private def callFunctionIfApplicable(
-      initialResponse: CompletionResponse,
-      functionCalls: List[FunctionCall[F]],
-      history: List[Message]
-  ): F[CompletionResponse] =
-    initialResponse.choices.last match
-      case cm: StopChoice                  => initialResponse.pure[F]
-      case ToolCallsChoice(index, message) =>
-        val returnMessages: F[List[Message]] =
-          (for
-            toolCall     <- message.toolCalls
-            functionCall <- functionCalls.filter(_.name === toolCall.function.name)
-          yield
-            val result: F[String] = functionCall.function(toolCall.function.arguments)
-            result.map(r => ResultFromToolMessage(Role.Tool, toolCall.function.name, r, toolCall.id))
-          ).sequence
-
-        returnMessages.flatMap(rm =>
-          gptApiClient.chatCompletions(history ++ rm, Some(functionCallTools(functionCalls)))
-        )
-
-  private def chatWithFunctionCalls(
-      message: Message,
-      functionCalls: List[FunctionCall[F]],
-      history: List[Message] = List.empty
-  ): F[SimpleChatResponse] =
-    val messages = history :+ message
-    val tools    = functionCallTools(functionCalls)
-    for
-      initialResponse <- gptApiClient.chatCompletions(messages, Some(tools))
-      response        <-
-        callFunctionIfApplicable(
-          initialResponse,
-          functionCalls,
-          message +: initialResponse.choices.map(_.message)
-        )
-    yield
-      val reply: Message = response.choices.last.message
-      SimpleChatResponse(reply, message +: response.choices.map(_.message))
-
-  /** Interact with GPT using plain text
-    *
-    * @param message
-    *   message to send
-    * @param history
-    *   all previous messages in conversation
-    * @return
-    *   response from GPT
-    */
-  def plainTextChat(
-      message: Message,
-      history: List[Message] = List.empty
-  ): F[SimpleChatResponse] =
-    val messages = history :+ message
-
-    gptApiClient.chatCompletions(messages).map { response =>
-      val reply = response.choices.last.message
-      SimpleChatResponse(reply, history :+ message :+ reply)
-    }
-
-  private def lastMessage(response: CompletionResponse) =
-    response.choices.last match
-      case sc: StopChoice      => sc.message
-      case tc: ToolCallsChoice => tc.message
