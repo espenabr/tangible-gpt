@@ -4,7 +4,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.generic.semiauto.*
 import io.circe.*
 import io.circe.parser.decode
-import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
+import xf.examples.Common.{clientResource, tangibleClient, extractKey}
 import xf.model.{FunctionCall, Param, TangibleResponse}
 import xf.model.Param.IntegerParam
 import cats.implicits.*
@@ -19,7 +19,7 @@ object JsonResponseAfterFunctionCall extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     clientResource
       .use { client =>
-        val ic      = createInteractionClient(client, extractKey(args))
+        val tc      = tangibleClient(client, extractKey(args))
         val example = Result(1234)
 
         def concatenateNumbers(a: Int, b: Int) = (a.toString + b.toString).toInt
@@ -32,7 +32,7 @@ object JsonResponseAfterFunctionCall extends IOApp:
           concatenateNumbers(params.a, params.b).toString.pure[IO]
 
         for
-          response <- ic.expectJson(
+          response <- tc.expectJson(
             s"""Calculate this expression using the |+| operator
                |
                |473 |+| 745 = """.stripMargin,

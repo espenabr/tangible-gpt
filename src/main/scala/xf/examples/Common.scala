@@ -1,7 +1,7 @@
 package xf.examples
 
 import cats.effect.{IO, Resource}
-import xf.InteractionClient
+import xf.TangibleClient
 import xf.gpt.GptApiClient
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
@@ -14,11 +14,11 @@ object Common:
 
   implicit val logging: LoggerFactory[IO] = Slf4jFactory.create[IO]
 
-  def createInteractionClient(
+  def tangibleClient(
       client: Client[IO],
       apiKey: String
-  ): InteractionClient[IO] =
-    new InteractionClient[IO](new GptApiClient[IO](client, apiKey))
+  ): TangibleClient[IO] =
+    new TangibleClient[IO](new GptApiClient[IO](client, apiKey))
 
   def extractKey(args: List[String]): String =
     sys.env.get("GPT_CHAT_SEMIAUTOMATION_API_KEY") match

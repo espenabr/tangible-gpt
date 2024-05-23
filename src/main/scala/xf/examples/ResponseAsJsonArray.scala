@@ -1,7 +1,7 @@
 package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
-import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
+import xf.examples.Common.{clientResource, tangibleClient, extractKey}
 import xf.interactionhandlers.RequestJsonArray
 import io.circe.generic.semiauto.*
 import io.circe.*
@@ -15,7 +15,7 @@ object ResponseAsJsonArray extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     clientResource
       .use { client =>
-        val ic      = createInteractionClient(client, extractKey(args))
+        val ic      = tangibleClient(client, extractKey(args))
         val example = Person("Jose", "Spain", 52)
         val handler = RequestJsonArray.createHandler(example)
 

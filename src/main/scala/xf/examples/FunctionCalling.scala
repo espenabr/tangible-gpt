@@ -2,7 +2,7 @@ package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.Decoder
-import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
+import xf.examples.Common.{clientResource, tangibleClient, extractKey}
 import xf.model.Param.IntegerParam
 import xf.model.{FunctionCall, InteractionHandler, Param}
 import io.circe._, io.circe.parser._
@@ -12,7 +12,7 @@ object FunctionCalling extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val ic = createInteractionClient(client, extractKey(args))
+      val tc = tangibleClient(client, extractKey(args))
 
       val handler = new InteractionHandler[String, String](s => s, s => s, (a, b) => Some(b))
 
@@ -39,7 +39,7 @@ object FunctionCalling extends IOApp:
       )
 
       for
-        aa <- ic.chat(
+        aa <- tc.chat(
                 "What is 87878 + 23255?",
                 handler,
                 List(fc)

@@ -3,7 +3,7 @@ package xf.examples
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import xf.Input.{prompt, readFileContent}
-import xf.examples.Common.{clientResource, createInteractionClient, extractKey, msg}
+import xf.examples.Common.{clientResource, tangibleClient, extractKey, msg}
 
 object ProvidingContext extends IOApp:
 
@@ -13,14 +13,14 @@ object ProvidingContext extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val ic = createInteractionClient(client, extractKey(args))
+      val tc = tangibleClient(client, extractKey(args))
       for {
         context  <- readFileContent("README.md")
-        reply    <- ic.plainTextChat(msg(s"""I will provide some information relevant for later.
+        reply    <- tc.plainTextChat(msg(s"""I will provide some information relevant for later.
                                             |$context"""))
         prompt   <- prompt("Ask questions about README.md")
-        response <- ic.plainTextChat(msg(prompt), reply.history)
+        response <- tc.plainTextChat(msg(prompt), reply.history)
         _        <- Console[IO].println(response.message)
-        _        <- Chat.chat(ic, response.history) // continue chat
+        _        <- Chat.chat(tc, response.history) // continue chat
       } yield ExitCode.Success
     }

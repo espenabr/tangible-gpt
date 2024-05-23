@@ -32,7 +32,7 @@ import xf.model.{
 
 import scala.util.Try
 
-class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
+class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
 
   def expectJson[R](
       prompt: String,

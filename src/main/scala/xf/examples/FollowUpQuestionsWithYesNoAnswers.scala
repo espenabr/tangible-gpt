@@ -2,7 +2,7 @@ package xf.examples
 
 import cats.effect.std.Console
 import cats.effect.{ExitCode, IO, IOApp}
-import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
+import xf.examples.Common.{clientResource, tangibleClient, extractKey}
 import xf.Input.{collectAnswers, prompt}
 import cats.implicits.*
 import xf.interactionhandlers.AnswerQuestions.answerQuestionsHandler
@@ -25,15 +25,15 @@ object FollowUpQuestionsWithYesNoAnswers extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val ic = createInteractionClient(client, extractKey(args))
+      val tc = tangibleClient(client, extractKey(args))
       for
         question         <- prompt("Ask a questions and get follow-up questions")
-        questionsFromGpt <- ic.chat(
+        questionsFromGpt <- tc.chat(
                               QuestionExpectingFollowupQuestions(question, YesNoQuestions, None),
                               requestFollowupQuestionsHandler
                             )
         myAnswers        <- collectAnswers(questionsFromGpt.value.get)
-        answerFromGpt    <- ic.chat(
+        answerFromGpt    <- tc.chat(
                               myAnswers,
                               answerQuestionsHandler,
                               history = questionsFromGpt.history

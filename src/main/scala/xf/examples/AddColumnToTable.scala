@@ -2,7 +2,7 @@ package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import xf.examples.Common.{clientResource, createInteractionClient, extractKey}
+import xf.examples.Common.{clientResource, tangibleClient, extractKey}
 import xf.interactionhandlers.ExpandTable.{addColumnToTableHandler, addRowToTableHandler, AddColumn, AddRow}
 import xf.interactionhandlers.ResponseAsTable.{tableHandler, TabularDataRequest}
 import xf.model.Table
@@ -15,7 +15,7 @@ object AddColumnToTable extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val ic = createInteractionClient(client, extractKey(args))
+      val ic = tangibleClient(client, extractKey(args))
       for {
         addedColumn <- ic.chat(
                          AddColumn(
