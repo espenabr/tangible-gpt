@@ -16,26 +16,23 @@ object FunctionCalling extends IOApp:
     .use { client =>
       val tc = createTangibleClient(client, extractKey(args))
 
-      def sum(a: Int, b: Int) = a + b
+      def sum(a: Int, b: Int): Int = a + b
 
-      def sumWrapper(s: String): IO[String] =
+      val sumFunctionCall: FunctionCall[IO] =
         case class SumParams(a: Int, b: Int)
         given Decoder[SumParams] = deriveDecoder
-        for
-          params <- IO.fromEither(decode[SumParams](s))
-        yield sum(params.a, params.b).toString
 
-      val fc = FunctionCall(
-        "sum_of_ints",
-        "Sum of two ints",
-        List(IntegerParam("a", "a"), IntegerParam("b", "b")),
-        s => sumWrapper(s)
-      )
+        FunctionCall[IO](
+          "sum_of_ints",
+          "Sum of two ints",
+          List(IntegerParam("a", "a"), IntegerParam("b", "b")),
+          s => IO.fromEither(decode[SumParams](s)).map { params => sum(params.a, params.b).toString }
+        )
 
       for
         response <- tc.expectDouble(
           "What is What is 87878 + 23255?",
-          functionCalls = List(fc)
+          functionCalls = List(sumFunctionCall)
         )
         _ <- IO.println(response.toOption.map(_.value).getOrElse("-"))
       yield ExitCode.Success
