@@ -32,14 +32,14 @@ tc.expectJson("Is AI smarter most than humans?").amp {
 }
 ```
 
-### Double response
+### Numeric response
 ```scala 3
 tc.expectDouble("Approximately how many people live in Norway?").map { 
   (response: Either[FailedInteraction, TangibleResponse[Double]]) => ???
 }
 ```
 
-### Plain text
+### Plain text response
 ```scala 3
 tc.expectPlainText("How are you?").map { 
   (response: TangibleResponse[String]) => ???
@@ -53,7 +53,7 @@ tc.expectDoubleOption("What is the meaning of life?").map {
 }
 ```
 
-### Function calling
+### With function calling
 ```scala 3
 def sum(a: Int, b: Int) = a + b
 
