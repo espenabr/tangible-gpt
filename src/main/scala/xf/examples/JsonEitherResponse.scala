@@ -22,12 +22,11 @@ object JsonEitherResponse extends IOApp.Simple:
       tc.expectJsonEither(
         "How much does a fish weigh?",
         Answer("answer"),
-        Clarifications(List("question", "question"))
+        Clarifications(List("question1", "question2", "questionN"))
       ).map { (response: Either[FailedInteraction, TangibleEitherResponse[Answer, Clarifications]]) =>
         ???
       }
-      
-      
+
       for
         response <- tc.expectJsonEither(
           "How much does a fish weigh?",
@@ -35,5 +34,5 @@ object JsonEitherResponse extends IOApp.Simple:
           Clarifications(List("question", "question"))
         )
         _ = response.foreach(r => println(r.value))
-      yield ExitCode.Success
+      yield ()
     }

@@ -20,35 +20,35 @@ case class Person(name: String, nationality: String, age: Int)
 given Codec[Person] = deriveCodec
 val example = Person("Jose", "Spain", 52)
 
-tc.expectJson("Give me 10 random people", List(example)).map { 
+tangibleClient.expectJson("Give me 10 random people", List(example)).map { 
   (response: Either[FailedInteraction, TangibleResponse[List[Person]]]) => ??? 
 }
 ```
 
 ### Boolean response
 ```scala 3
-tc.expectJson("Is AI smarter most than humans?").amp { 
+tangibleClient.expectJson("Is AI smarter most than humans?").amp { 
   (response: Either[FailedInteraction, TangibleResponse[Boolean]]) => ??? 
 }
 ```
 
 ### Numeric response
 ```scala 3
-tc.expectDouble("Approximately how many people live in Norway?").map { 
+tangibleClient.expectDouble("Approximately how many people live in Norway?").map { 
   (response: Either[FailedInteraction, TangibleResponse[Double]]) => ???
 }
 ```
 
 ### Plain text response
 ```scala 3
-tc.expectPlainText("How are you?").map { 
+tangibleClient.expectPlainText("How are you?").map { 
   (response: TangibleResponse[String]) => ???
 }
 ```
 
 ### Optional response
 ```scala 3
-tc.expectDoubleOption("What is the meaning of life?").map {
+tangibleClient.expectDoubleOption("What is the meaning of life?").map {
   (response: Either[FailedInteraction, TangibleOptionResponse[Double]]) => ???
 }
 ```
@@ -67,7 +67,7 @@ val sumFunctionCall: FunctionCall[IO] =
     s => IO.fromEither(decode[SumParams](s)).map { params => sum(params.a, params.b).toString }
   )
 
-tc.expectDouble(
+tangibleClient.expectDouble(
   "What is What is 87878 + 23255?",
   functionCalls = List(sumFunctionCall)
 ).map {
@@ -78,7 +78,7 @@ tc.expectDouble(
 ### With Either type
 
 ```scala 3
-tc.expectJsonEither(
+tangibleClient.expectJsonEither(
   "How much does a fish weigh?",
   Answer("answer"),
   Clarifications(List("question", "question"))
@@ -89,7 +89,7 @@ tc.expectJsonEither(
 
 ### Custom reasoning strategy
 ```scala 3
-tc.expectDouble(
+tangibleClient.expectDouble(
   "A juggler has 16 balls. Half of the balls are golf balls and half of the golf balls are blue. How many blue golf balls are there?",
   reasoningStrategy = ReasoningStrategy.ThinkStepByStep
 ).map { (response: Either[FailedInteraction, TangibleResponse[Double]]) =>
@@ -97,9 +97,25 @@ tc.expectDouble(
 }
 ```
 
-### Using EitherT
+### Chained requests
 ```scala 3
+case class ThingToDo(activity: String)
+given Codec[ThingToDo] = deriveCodec
 
+case class ActivityDetails(activity: String, description: String, difficulty1To10: Int)
+given Codec[ActivityDetails] = deriveCodec
+
+val result: IO[Either[FailedInteraction, ActivityDetails]] =
+  (for
+    response1 <- EitherT(tc.expectJson("I'm bored, give me some suggestions of things to do", List(ThingToDo("activity"))))
+    response2 <- EitherT(
+      tc.expectJson(
+        s"Tell me more about ${Random.shuffle(response1.value).head.activity}",
+        ActivityDetails("activity", "description", 5),
+        history = response1.history
+      )
+    )
+  yield response2.value).value
 ```
 
 Also, have a look in the `examples` folder for more examples of usage
