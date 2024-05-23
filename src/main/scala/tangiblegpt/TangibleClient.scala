@@ -15,16 +15,14 @@ import tangiblegpt.gpt.GptApiClient.Request.{Parameters, Property, RequestFuncti
 import tangiblegpt.gpt.GptApiClient.Response.FinishReason
 import tangiblegpt.gpt.GptApiClient.Response.FinishReason.Choice.{StopChoice, ToolCallsChoice}
 import tangiblegpt.gpt.GptApiClient.Response.FinishReason.CompletionResponse
+import tangiblegpt.legacy.model.{ChatResponse, InteractionHandler, SimpleChatResponse}
 import tangiblegpt.model.FailedInteraction.ParseError
 import tangiblegpt.model.Param.{EnumParam, IntegerParam, StringParam}
 import tangiblegpt.model.ReasoningStrategy.{Simple, SuggestMultipleAndPickOne, ThinkStepByStep}
 import tangiblegpt.model.{
-  ChatResponse,
   FailedInteraction,
   FunctionCall,
-  InteractionHandler,
   ReasoningStrategy,
-  SimpleChatResponse,
   TangibleEitherResponse,
   TangibleOptionResponse,
   TangibleResponse

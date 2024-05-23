@@ -3,7 +3,7 @@ package tangiblegpt.legacy
 import cats.effect.Concurrent
 import tangiblegpt.gpt.GptApiClient
 import tangiblegpt.gpt.GptApiClient.Common.{Message, Role}
-import tangiblegpt.model.{ChatResponse, FailedInteraction, FunctionCall, InteractionHandler, ReasoningStrategy, SimpleChatResponse, TangibleEitherResponse, TangibleOptionResponse, TangibleResponse}
+import tangiblegpt.model.{FailedInteraction, FunctionCall, ReasoningStrategy, TangibleEitherResponse, TangibleOptionResponse, TangibleResponse}
 import ReasoningStrategy.{Simple, SuggestMultipleAndPickOne, ThinkStepByStep}
 import tangiblegpt.gpt.GptApiClient.Common.Message.ContentMessage
 import tangiblegpt.gpt.GptApiClient.Common.Role.User
@@ -14,6 +14,7 @@ import tangiblegpt.gpt.GptApiClient.Response.FinishReason.CompletionResponse
 import tangiblegpt.gpt.GptApiClient.Response.FinishReason.Choice.{StopChoice, ToolCallsChoice}
 import tangiblegpt.gpt.GptApiClient.Common.Message.{ContentMessage, ResultFromToolMessage}
 import tangiblegpt.gpt.GptApiClient.Request.{Parameters, RequestFunction, Tool}
+import tangiblegpt.legacy.model.{ChatResponse, InteractionHandler, SimpleChatResponse}
 
 
 class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):

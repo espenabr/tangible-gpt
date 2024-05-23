@@ -1,10 +1,10 @@
 package tangiblegpt.legacy.interactionhandlers
 
-import tangiblegpt.model.InteractionHandler
 import tangiblegpt.model.Table.Column
 import tangiblegpt.model.Table
 import tangiblegpt.model.Table.Column.{BooleanColumn, NumberColumn, SingleChoiceColumn, TextColumn}
 import cats.implicits.*
+import tangiblegpt.legacy.model.InteractionHandler
 import tangiblegpt.legacy.parsers.Parsers
 
 object ResponseAsTable:

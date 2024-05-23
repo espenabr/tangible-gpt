@@ -1,4 +1,4 @@
-package tangiblegpt.model
+package tangiblegpt.legacy.model
 
 /**
  * Handle an interaction with GPT where the request and response can be arbitrary types

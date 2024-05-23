@@ -1,6 +1,5 @@
 package tangiblegpt.legacy.interactionhandlers
 
-import tangiblegpt.model.InteractionHandler
 import AnswerQuestions.AnswerToQuestionFromGpt.{
   AnswerToBooleanQuestionFromGpt,
   AnswerToMultipleChoiceQuestionFromGpt,
@@ -13,6 +12,7 @@ import RequestQuestions.QuestionFromGpt.{
   SingleChoiceQuestionFromGpt,
   TextQuestionFromGpt
 }
+import tangiblegpt.legacy.model.InteractionHandler
 
 object AnswerQuestions:
 

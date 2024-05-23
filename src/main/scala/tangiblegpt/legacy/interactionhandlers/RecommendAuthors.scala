@@ -1,6 +1,6 @@
 package tangiblegpt.legacy.interactionhandlers
 
-import tangiblegpt.model.InteractionHandler
+import tangiblegpt.legacy.model.InteractionHandler
 
 object RecommendAuthors:
 

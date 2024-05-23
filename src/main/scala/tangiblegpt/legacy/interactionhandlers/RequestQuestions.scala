@@ -7,13 +7,13 @@ import RequestQuestions.QuestionType.{
   TextQuestions,
   YesNoQuestions
 }
-import tangiblegpt.model.InteractionHandler
 import RequestQuestions.QuestionFromGpt.{
   BooleanQuestionFromGpt,
   MultipleChoiceQuestionFromGpt,
   SingleChoiceQuestionFromGpt,
   TextQuestionFromGpt
 }
+import tangiblegpt.legacy.model.InteractionHandler
 
 object RequestQuestions:
 

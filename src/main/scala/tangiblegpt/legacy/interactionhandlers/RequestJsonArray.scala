@@ -1,9 +1,9 @@
 package tangiblegpt.legacy.interactionhandlers
 
 import io.circe.Encoder
-import tangiblegpt.model.InteractionHandler
 import io.circe.syntax.*
 import io.circe.*
+import tangiblegpt.legacy.model.InteractionHandler
 import tangiblegpt.legacy.parsers.Parsers
 
 object RequestJsonArray:
