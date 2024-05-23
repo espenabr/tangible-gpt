@@ -1,10 +1,10 @@
-package tangiblegpt.interactionhandlers
+package tangiblegpt.legacy.interactionhandlers
 
+import tangiblegpt.legacy.parsers.Parsers
+import tangiblegpt.legacy.renderers.Renderers
 import tangiblegpt.model.{InteractionHandler, Table}
 import tangiblegpt.model.Table.Column
-import tangiblegpt.parsers.Parsers
-import tangiblegpt.renderers.Renderers
-import tangiblegpt.renderers.Renderers.{describeColumn, renderTable}
+import Renderers.{describeColumn, renderTable}
 
 object ExpandTable:
 

@@ -1,14 +1,14 @@
-package tangiblegpt.interactionhandlers
+package tangiblegpt.legacy.interactionhandlers
 
-import tangiblegpt.interactionhandlers.RequestQuestions.QuestionType
-import tangiblegpt.interactionhandlers.RequestQuestions.QuestionType.{
+import RequestQuestions.QuestionType
+import RequestQuestions.QuestionType.{
   MultipleChoiceQuestions,
   SingleChoiceQuestions,
   TextQuestions,
   YesNoQuestions
 }
 import tangiblegpt.model.InteractionHandler
-import tangiblegpt.interactionhandlers.RequestQuestions.QuestionFromGpt.{
+import RequestQuestions.QuestionFromGpt.{
   BooleanQuestionFromGpt,
   MultipleChoiceQuestionFromGpt,
   SingleChoiceQuestionFromGpt,

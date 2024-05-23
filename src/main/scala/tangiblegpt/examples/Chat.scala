@@ -19,7 +19,7 @@ object Chat extends IOApp:
   def chat(tc: TangibleClient[IO], history: List[Message]): IO[ExitCode] =
     for
       message <- prompt("Chat")
-      reply   <- tc.plainTextChat(msg(message), history)
-      _       <- Console[IO].println(reply.message)
+      reply   <- tc.expectPlainText(message, history)
+      _       <- Console[IO].println(reply.value)
       _       <- chat(tc, reply.history)
     yield ExitCode.Success

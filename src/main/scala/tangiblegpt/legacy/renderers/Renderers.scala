@@ -1,4 +1,4 @@
-package tangiblegpt.renderers
+package tangiblegpt.legacy.renderers
 
 import tangiblegpt.model.Table
 import tangiblegpt.model.Table.{Cell, Column, Row}

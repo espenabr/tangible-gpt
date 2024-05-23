@@ -12,7 +12,7 @@ import scala.util.Random
 
 object Conversational extends IOApp.Simple:
 
-  val run =
+  val run: IO[Unit] =
     clientResource.use { client =>
       val tc = createTangibleClient(client, extractKey())
 

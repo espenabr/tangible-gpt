@@ -1,8 +1,9 @@
-package tangiblegpt.examples
+package tangiblegpt.legacy.examples
 
-import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
+import cats.effect.{ExitCode, IO, IOApp}
 import tangiblegpt.Input.{prompt, readFileContent}
+import tangiblegpt.examples.Chat
 import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey, msg}
 
 object ProvidingContext extends IOApp:

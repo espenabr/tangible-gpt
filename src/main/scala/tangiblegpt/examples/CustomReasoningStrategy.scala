@@ -4,7 +4,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
 import tangiblegpt.model.{FailedInteraction, ReasoningStrategy, TangibleResponse}
 
-object CustomReasoningStrategy extends IOApp:
+object CustomReasoningStrategy extends IOApp.Simple:
 
   /**
    * Use the "think step by step" strategy
@@ -12,7 +12,7 @@ object CustomReasoningStrategy extends IOApp:
    * Example is borrowed from the OpenAI Cookbook
    */
   
-  override def run(args: List[String]): IO[ExitCode] = clientResource
+  override val run: IO[Unit] = clientResource
     .use { client =>
       val tc = createTangibleClient(client, extractKey())
 
@@ -22,5 +22,5 @@ object CustomReasoningStrategy extends IOApp:
           reasoningStrategy = ReasoningStrategy.ThinkStepByStep
         )
         _ <- IO.println(response.toOption.map(_.value).getOrElse(""))
-      yield ExitCode.Success
+      yield ()
     }

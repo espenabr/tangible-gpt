@@ -1,13 +1,13 @@
-package tangiblegpt.examples
+package tangiblegpt.legacy.examples
 
-import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
+import cats.effect.{ExitCode, IO, IOApp}
 import tangiblegpt.Input.{collectAnswers, prompt}
-import tangiblegpt.interactionhandlers.RequestQuestions.{requestQuizQuestions, QuizRequest}
-import tangiblegpt.interactionhandlers.RequestQuestions.QuestionType.{SingleChoiceQuestions, YesNoQuestions}
-import tangiblegpt.interactionhandlers.AnswerQuestions.answerQuestionsHandler
-import tangiblegpt.interactionhandlers.RequestQuestions.Difficulty.Medium
+import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
+import tangiblegpt.legacy.interactionhandlers.AnswerQuestions.answerQuestionsHandler
+import tangiblegpt.legacy.interactionhandlers.RequestQuestions.Difficulty.Medium
+import tangiblegpt.legacy.interactionhandlers.RequestQuestions.QuestionType.{SingleChoiceQuestions, YesNoQuestions}
+import tangiblegpt.legacy.interactionhandlers.RequestQuestions.{QuizRequest, requestQuizQuestions}
 
 object Quiz extends IOApp:
 

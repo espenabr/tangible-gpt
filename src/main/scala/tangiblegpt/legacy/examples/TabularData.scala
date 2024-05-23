@@ -1,13 +1,14 @@
-package tangiblegpt.examples
+package tangiblegpt.legacy.examples
 
-import scala.util.Try
-import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
+import cats.effect.{ExitCode, IO, IOApp}
 import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
-import tangiblegpt.interactionhandlers.ResponseAsTable.{tableHandler, TabularDataRequest}
+import tangiblegpt.legacy.interactionhandlers.ResponseAsTable.{TabularDataRequest, tableHandler}
+import tangiblegpt.model.Table
 import tangiblegpt.model.Table.Cell.{BooleanCell, SingleChoiceCell, TextCell}
 import tangiblegpt.model.Table.{Cell, Column, Row}
-import tangiblegpt.model.Table
+
+import scala.util.Try
 
 object TabularData extends IOApp:
 

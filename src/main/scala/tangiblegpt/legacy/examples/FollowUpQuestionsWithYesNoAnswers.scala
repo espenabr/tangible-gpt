@@ -1,17 +1,13 @@
-package tangiblegpt.examples
+package tangiblegpt.legacy.examples
 
 import cats.effect.std.Console
 import cats.effect.{ExitCode, IO, IOApp}
-import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
-import tangiblegpt.Input.{collectAnswers, prompt}
 import cats.implicits.*
-import tangiblegpt.interactionhandlers.AnswerQuestions.answerQuestionsHandler
-import tangiblegpt.interactionhandlers.RequestQuestions.QuestionType.YesNoQuestions
-import tangiblegpt.interactionhandlers.RequestQuestions.{
-  requestFollowupQuestionsHandler,
-  QuestionExpectingFollowupQuestions,
-  QuestionType
-}
+import tangiblegpt.Input.{collectAnswers, prompt}
+import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
+import tangiblegpt.legacy.interactionhandlers.AnswerQuestions.answerQuestionsHandler
+import tangiblegpt.legacy.interactionhandlers.RequestQuestions.QuestionType.YesNoQuestions
+import tangiblegpt.legacy.interactionhandlers.RequestQuestions.{QuestionExpectingFollowupQuestions, QuestionType, requestFollowupQuestionsHandler}
 
 object FollowUpQuestionsWithYesNoAnswers extends IOApp:
 

@@ -1,4 +1,4 @@
-package tangiblegpt.interactionhandlers
+package tangiblegpt.legacy.interactionhandlers
 
 import tangiblegpt.model.InteractionHandler
 

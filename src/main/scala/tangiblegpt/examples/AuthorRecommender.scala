@@ -1,41 +1,32 @@
 package tangiblegpt.examples
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{IO, IOApp}
 import cats.effect.std.Console
 import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
 import tangiblegpt.Input.{collectSelectedItems, prompt}
-import tangiblegpt.interactionhandlers.RecommendAuthors.{
-  recommendedAuthorsBasedOnFavoriteStrengths,
-  strengthsBasedOnAuthorsHandler,
-  FavoriteAuthors,
-  FavoriteStrengths
-}
 
-import scala.util.Random
+object AuthorRecommender extends IOApp.Simple:
 
-object AuthorRecommender extends IOApp:
-
-  /*
-   * Flow:
-   *  1. Users inputs favorite authors
-   *  2. GPT returns a list of unique strengths of these authors combined
-   *  3. Users selects the most prefered of these strengths
-   *  4. GPT returns a list of recommended authors based on the conversation
-   */
-
-  def run(args: List[String]): IO[ExitCode] = clientResource
+  def run: IO[Unit] = clientResource
     .use { client =>
       val ic = createTangibleClient(client, extractKey())
       for {
         input              <- prompt("List authors that you like, separated by comma")
-        authors             = FavoriteAuthors(input.split(",").toList.map(_.strip()))
-        strengthsOfAuthors <- ic.chat(authors, strengthsBasedOnAuthorsHandler)
-        favoriteStrengths  <- collectSelectedItems(strengthsOfAuthors.value.get.strengths)
-        recommended        <- ic.chat(
-                                FavoriteStrengths(Random.shuffle(favoriteStrengths)),
-                                recommendedAuthorsBasedOnFavoriteStrengths,
-                                history = strengthsOfAuthors.history
+        authors             = input.split(",").toList.map(_.strip())
+        strengthsOfAuthors <- ic.expectJson(
+                                s"""Given my favorite authors: ${authors.mkString(", ")}
+                                   |give me a lisrt of their strengths as authors in a single list""".stripMargin,
+                                List("strength1", "strength2", "strengthN")
                               )
-        _                  <- Console[IO].println(recommended.value.get)
-      } yield ExitCode.Success
+        _                  <- Console[IO].println(s"""Select your favourite author strengths""".stripMargin)
+        favoriteStrengths  <- collectSelectedItems(strengthsOfAuthors.map(_.value).getOrElse(List.empty))
+        _                   = strengthsOfAuthors.foreach(_.printHistory())
+        recommended        <-
+          ic.expectPlainText(
+            s"""My favorite strengths are: ${favoriteStrengths.mkString(", ")}
+               |Based on these preferred strengths and my favorite authors, I want you to recommend other authors I might like, and also tell me why.""".stripMargin,
+            history = strengthsOfAuthors.map(_.history).getOrElse(List.empty)
+          )
+        _                  <- Console[IO].println(recommended.value)
+      } yield ()
     }

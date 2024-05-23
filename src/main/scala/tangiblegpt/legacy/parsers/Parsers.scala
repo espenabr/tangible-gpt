@@ -1,12 +1,12 @@
-package tangiblegpt.parsers
+package tangiblegpt.legacy.parsers
 
 import cats.implicits.*
 import io.circe.Decoder
 import io.circe.parser.decode
 import tangiblegpt.model.Table
-import tangiblegpt.model.Table.{Column, Row}
-import tangiblegpt.model.Table.Column.{BooleanColumn, NumberColumn, SingleChoiceColumn, TextColumn}
 import tangiblegpt.model.Table.Cell.{BooleanCell, NumberCell, SingleChoiceCell, TextCell}
+import tangiblegpt.model.Table.Column.{BooleanColumn, NumberColumn, SingleChoiceColumn, TextColumn}
+import tangiblegpt.model.Table.{Column, Row}
 
 object Parsers:
 

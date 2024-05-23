@@ -31,9 +31,9 @@ object FunctionCalling extends IOApp:
 
       for
         response <- tc.expectDouble(
-          "What is What is 87878 + 23255?",
-          functionCalls = List(sumFunctionCall)
-        )
-        _ <- IO.println(response.toOption.map(_.value).getOrElse("-"))
+                      "What is What is 87878 + 23255?",
+                      functionCalls = List(sumFunctionCall)
+                    )
+        _        <- IO.println(response.toOption.map(_.value).getOrElse("-"))
       yield ExitCode.Success
     }

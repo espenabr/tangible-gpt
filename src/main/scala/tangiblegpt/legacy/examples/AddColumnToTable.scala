@@ -1,15 +1,14 @@
-package tangiblegpt.examples
+package tangiblegpt.legacy.examples
 
-import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
+import cats.effect.{ExitCode, IO, IOApp}
 import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
-import tangiblegpt.interactionhandlers.ExpandTable.{addColumnToTableHandler, addRowToTableHandler, AddColumn, AddRow}
-import tangiblegpt.interactionhandlers.ResponseAsTable.{tableHandler, TabularDataRequest}
+import tangiblegpt.legacy.interactionhandlers.ExpandTable.{AddColumn, AddRow, addColumnToTableHandler, addRowToTableHandler}
+import tangiblegpt.legacy.interactionhandlers.ResponseAsTable.{TabularDataRequest, tableHandler}
 import tangiblegpt.model.Table
-import tangiblegpt.model.Table.Column
-import tangiblegpt.model.Table.Column.{NumberColumn, SingleChoiceColumn, TextColumn}
-import tangiblegpt.model.Table.Row
 import tangiblegpt.model.Table.Cell.{SingleChoiceCell, TextCell}
+import tangiblegpt.model.Table.Column.{NumberColumn, SingleChoiceColumn, TextColumn}
+import tangiblegpt.model.Table.{Column, Row}
 
 object AddColumnToTable extends IOApp:
 

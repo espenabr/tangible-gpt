@@ -2,17 +2,17 @@ package tangiblegpt.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey, msg}
+import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
 import tangiblegpt.Input.prompt
 
-object SimpleQuery extends IOApp:
+object SimpleQuery extends IOApp.Simple:
 
-  def run(args: List[String]): IO[ExitCode] = clientResource
+  val run: IO[Unit] = clientResource
     .use { client =>
       val tc = createTangibleClient(client, extractKey())
       for
         prompt <- prompt("Prompt")
-        answer <- tc.plainTextChat(msg(prompt))
-        _      <- Console[IO].println(answer.message)
+        answer <- tc.expectPlainText(prompt)
+        _      <- Console[IO].println(answer.value)
       yield ExitCode.Success
     }
