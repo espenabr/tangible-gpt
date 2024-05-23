@@ -14,7 +14,7 @@ object Common:
 
   implicit val logging: LoggerFactory[IO] = Slf4jFactory.create[IO]
 
-  def tangibleClient(
+  def createTangibleClient(
       client: Client[IO],
       apiKey: String
   ): TangibleClient[IO] =

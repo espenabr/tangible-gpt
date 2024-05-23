@@ -2,7 +2,7 @@ package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import xf.examples.Common.{clientResource, tangibleClient, extractKey}
+import xf.examples.Common.{clientResource, createTangibleClient, extractKey}
 import xf.Input.{collectSelectedItems, prompt}
 import xf.interactionhandlers.RecommendAuthors.{
   recommendedAuthorsBasedOnFavoriteStrengths,
@@ -25,7 +25,7 @@ object AuthorRecommender extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val ic = tangibleClient(client, extractKey(args))
+      val ic = createTangibleClient(client, extractKey(args))
       for {
         input              <- prompt("List authors that you like, separated by comma")
         authors             = FavoriteAuthors(input.split(",").toList.map(_.strip()))

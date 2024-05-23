@@ -2,14 +2,14 @@ package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import xf.examples.Common.{clientResource, tangibleClient, extractKey, msg}
+import xf.examples.Common.{clientResource, createTangibleClient, extractKey, msg}
 import xf.Input.prompt
 
 object SimpleQuery extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = tangibleClient(client, extractKey(args))
+      val tc = createTangibleClient(client, extractKey(args))
       for
         prompt <- prompt("Prompt")
         answer <- tc.plainTextChat(msg(prompt))

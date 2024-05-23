@@ -2,7 +2,7 @@ package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import xf.examples.Common.{clientResource, tangibleClient, extractKey}
+import xf.examples.Common.{clientResource, createTangibleClient, extractKey}
 import xf.model.InteractionHandler
 
 object CustomInteractionHandler extends IOApp:
@@ -11,7 +11,7 @@ object CustomInteractionHandler extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = tangibleClient(client, extractKey(args))
+      val tc = createTangibleClient(client, extractKey(args))
       for
         response <- tc.chat(
                       List("Flyfishing", "Bicycling", "Partying", "Socializing", "Watching TV", "Dishwashing"),

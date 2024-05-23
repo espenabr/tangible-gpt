@@ -4,7 +4,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.generic.semiauto.*
 import io.circe.*
 import io.circe.parser.decode
-import xf.examples.Common.{clientResource, tangibleClient, extractKey}
+import xf.examples.Common.{clientResource, createTangibleClient, extractKey}
 import xf.model.{FunctionCall, Param, TangibleResponse}
 import xf.model.Param.IntegerParam
 import cats.implicits.*
@@ -19,7 +19,7 @@ object JsonResponseAfterFunctionCall extends IOApp:
   override def run(args: List[String]): IO[ExitCode] =
     clientResource
       .use { client =>
-        val tc      = tangibleClient(client, extractKey(args))
+        val tc      = createTangibleClient(client, extractKey(args))
         val example = Result(1234)
 
         def concatenateNumbers(a: Int, b: Int) = (a.toString + b.toString).toInt

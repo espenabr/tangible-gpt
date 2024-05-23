@@ -3,7 +3,7 @@ package xf.examples
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
 import xf.TangibleClient
-import xf.examples.Common.{clientResource, tangibleClient, extractKey, msg}
+import xf.examples.Common.{clientResource, createTangibleClient, extractKey, msg}
 import xf.Input.prompt
 import xf.gpt.GptApiClient.Common.Message
 
@@ -14,7 +14,7 @@ object Chat extends IOApp:
    */
 
   def run(args: List[String]): IO[ExitCode] = clientResource
-    .use { client => chat(tangibleClient(client, extractKey(args)), List.empty) }
+    .use { client => chat(createTangibleClient(client, extractKey(args)), List.empty) }
 
   def chat(tc: TangibleClient[IO], history: List[Message]): IO[ExitCode] =
     for

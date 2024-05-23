@@ -1,37 +1,92 @@
-# gpt-chat-semiautomation
+# tangible-gpt
 
-### Tools for semi-automating interaction with OpenAI's chat completion API
+Make LLM integration more tangible through type safety
 
-An abstraction layer of building blocks on top of the existing API to simplify automating the conversation
+## Motivation
 
-### Features include
+Strict typing can make APIs easier to work with and harder to use wrongly. LLMs, like
+OpenAI's GPT4, are pretty good at responding in a specific syntax such as JSON.
 
-- Prompt GPT for specific interaction modes, e.g. asking you questions or other request for input
-- Specification of response format, including prompting and parsing
-- Simple command-line integration for playing around, but intended as a library for different applications
-- Scala client for the standard chat completion HTTP API
-- Simplify GPT4's function calling feature by binding to Scala functions
-- Automatically use different strategies to make GPT reason better and improve answers
+tangible-gpt simplifies typed, structured interactions with OpenAI's chat completion
+API (with intention of supporting others). It also supports simplified function calling
+and automating different reasoning strategies
+(see https://cookbook.openai.com/articles/techniques_to_improve_reliability)
 
-### Purpose
+## Examples
 
-- Save time and effort using GPT in specific ways
-- Explore different ways of interacting with GPT
+### Json response
+```scala 3
+case class Person(name: String, nationality: String, age: Int)
+given Codec[Person] = deriveCodec
+val example = Person("Jose", "Spain", 52)
 
-### Design goals
+tc.expectJson("Give me 10 random people", List(example)).map { (response: Either[FailedInteraction, TangibleResponse[List[Person]]]) =>
+  ??? 
+}
+```
 
-- Ergonomic, composable API
-- Decent balance between structured and general-purpose interaction
-- Follow the conversation pattern of ChatGPT
-- Extensible enough to add new conversation types and response types
+### Boolean response
+```scala 3
+tc.expectJson("Is AI smarter most than humans?").amp { (response: Either[FailedInteraction, TangibleResponse[Boolean]]) =>
+  ??? 
+}
+```
 
-### Limitations
+### Double response
+```scala 3
+tc.expectDouble("Approximately how many people live in Norway?").map { (response: Either[FailedInteraction, TangibleResponse[Double]]) =>
+  ???
+}
+```
 
-- A bit naive approach to specifying exact response format. Can probably be improved with better prompt engineering
-- No decent error handling yet
-- As you can't always predict the output from LLMs, desired response formats can never be guaranteed
+### Plain text
+```scala 3
+tc.expectPlainText("How are you?").map { (response: TangibleResponse[String]) =>
+  ???
+}
+```
 
-### Getting started
+### Optional response
+```scala 3
+tc.expectDoubleOption("What is the meaning of life?").map { (response: Either[FailedInteraction, TangibleOptionResponse[Double]]) =>
+  ???
+}
+```
 
-The best way to get started is looking in the `examples` folder. These demonstrate different use cases and
-can hopefully serve as inspiration for what this can be used for.
+### Function calling
+```scala 3
+def sum(a: Int, b: Int) = a + b
+
+def f(s: String): IO[String] =
+  case class SumParams(a: Int, b: Int)
+  object SumParams:
+    given Decoder[SumParams] = Decoder { c =>
+      for
+        a <- c.downField("a").as[Int]
+        b <- c.downField("b").as[Int]
+      yield SumParams(a, b)
+    }
+  val params: SumParams = decode[SumParams](s)(using summon[Decoder[SumParams]]).toOption.get
+  sum(params.a, params.b).toString.pure[IO]
+
+val fc = FunctionCall(
+  "sum_of_ints",
+  "Sum of two ints",
+  List(IntegerParam("a", "a"), IntegerParam("b", "b")),
+  s => f(s)
+)
+
+tc.expectDouble(
+  "What is What is 87878 + 23255?",
+  functionCalls = List(fc)
+).map { (response: Either[FailedInteraction, TangibleResponse[Double]]) =>
+  ???
+  
+}
+```
+
+### Custom reasoning strategy
+
+### Using EitherT
+
+Also, have a look in the `examples` folder for more examples of usage

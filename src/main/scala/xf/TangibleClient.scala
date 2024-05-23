@@ -137,11 +137,11 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
       reasoningStrategy: ReasoningStrategy = Simple
-  ): F[ChatResponse[String]] =
+  ): F[TangibleResponse[String]] =
     val message = userContentMessage(initialPrompt(reasoningStrategy, prompt, None))
     interact(message, history, functionCalls, reasoningStrategy, None).map { response =>
-      ChatResponse[String](
-        Some(response.message.content),
+      TangibleResponse[String](
+        response.message.content,
         response.message.content,
         response.history
       )
@@ -211,7 +211,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       functionCalls: List[FunctionCall[F]] = List.empty,
       reasoningStrategy: ReasoningStrategy = Simple
   ): F[Either[FailedInteraction, TangibleResponse[Double]]] =
-    val responseFormatDescription = "I only want a number as an answer, nothing else."
+    val responseFormatDescription = "I only want a number (all digits) as an answer, nothing else."
     val message                   = userContentMessage(initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)))
 
     interact(message, history, functionCalls, reasoningStrategy, Some(responseFormatDescription)).map { response =>

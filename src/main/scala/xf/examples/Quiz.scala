@@ -2,7 +2,7 @@ package xf.examples
 
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.effect.std.Console
-import xf.examples.Common.{clientResource, tangibleClient, extractKey}
+import xf.examples.Common.{clientResource, createTangibleClient, extractKey}
 import xf.Input.{collectAnswers, prompt}
 import xf.interactionhandlers.RequestQuestions.{requestQuizQuestions, QuizRequest}
 import xf.interactionhandlers.RequestQuestions.QuestionType.{SingleChoiceQuestions, YesNoQuestions}
@@ -13,7 +13,7 @@ object Quiz extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val tc = tangibleClient(client, extractKey(args))
+      val tc = createTangibleClient(client, extractKey(args))
       for {
         topic     <- prompt("Quiz topic")
         questions <- tc.chat(QuizRequest(topic, Medium, SingleChoiceQuestions(Some(3)), Some(6)), requestQuizQuestions)

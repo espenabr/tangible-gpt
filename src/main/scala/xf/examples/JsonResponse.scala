@@ -4,19 +4,17 @@ import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 import io.circe.*
-import io.circe.parser.decode
-import xf.examples.Common.{clientResource, tangibleClient, extractKey}
+ import xf.examples.Common.{clientResource, createTangibleClient, extractKey}
 
 object JsonResponse extends IOApp:
 
   case class Person(name: String, nationality: String, age: Int)
-  given Encoder[Person] = deriveEncoder
-  given Decoder[Person] = deriveDecoder
+  given Codec[Person] = deriveCodec
 
   override def run(args: List[String]): IO[ExitCode] =
     clientResource
       .use { client =>
-        val tc      = tangibleClient(client, extractKey(args))
+        val tc      = createTangibleClient(client, extractKey(args))
         val example = Person("Jose", "Spain", 52)
 
         for
