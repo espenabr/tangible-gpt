@@ -8,6 +8,7 @@ import xf.model.{FunctionCall, Param}
 import io.circe.*
 import io.circe.parser.*
 import cats.implicits.*
+import io.circe.generic.semiauto.deriveDecoder
 
 object FunctionCalling extends IOApp:
 
@@ -17,23 +18,18 @@ object FunctionCalling extends IOApp:
 
       def sum(a: Int, b: Int) = a + b
 
-      def f(s: String): IO[String] =
+      def sumWrapper(s: String): IO[String] =
         case class SumParams(a: Int, b: Int)
-        object SumParams:
-          given Decoder[SumParams] = Decoder { c =>
-            for
-              a <- c.downField("a").as[Int]
-              b <- c.downField("b").as[Int]
-            yield SumParams(a, b)
-          }
-        val params: SumParams = decode[SumParams](s)(using summon[Decoder[SumParams]]).toOption.get
-        sum(params.a, params.b).toString.pure[IO]
+        given Decoder[SumParams] = deriveDecoder
+        for
+          params <- IO.fromEither(decode[SumParams](s))
+        yield sum(params.a, params.b).toString
 
       val fc = FunctionCall(
         "sum_of_ints",
         "Sum of two ints",
         List(IntegerParam("a", "a"), IntegerParam("b", "b")),
-        s => f(s)
+        s => sumWrapper(s)
       )
 
       for

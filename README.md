@@ -4,11 +4,11 @@ Make LLM integration more tangible through type safety
 
 ## Motivation
 
-Strict typing can make APIs easier to work with and harder to use wrongly. LLMs, like
+Strict typing can make APIs easier to work with and harder to misuse. LLMs, like
 OpenAI's GPT4, are pretty good at responding in a specific syntax such as JSON.
 
 tangible-gpt simplifies typed, structured interactions with OpenAI's chat completion
-API (with intention of supporting others). It also supports simplified function calling
+API (with intention of supporting others). It also simplifies function calling
 and automating different reasoning strategies
 (see https://cookbook.openai.com/articles/techniques_to_improve_reliability)
 
@@ -57,23 +57,18 @@ tc.expectDoubleOption("What is the meaning of life?").map {
 ```scala 3
 def sum(a: Int, b: Int) = a + b
 
-def f(s: String): IO[String] =
+def sumWrapper(s: String): IO[String] =
   case class SumParams(a: Int, b: Int)
-  object SumParams:
-    given Decoder[SumParams] = Decoder { c =>
-      for
-        a <- c.downField("a").as[Int]
-        b <- c.downField("b").as[Int]
-      yield SumParams(a, b)
-    }
-  val params: SumParams = decode[SumParams](s)(using summon[Decoder[SumParams]]).toOption.get
-  sum(params.a, params.b).toString.pure[IO]
+  given Decoder[SumParams] = deriveDecoder
+  for
+    params <- IO.fromEither(decode[SumParams](s))
+  yield sum(params.a, params.b).toString
 
 val fc = FunctionCall(
   "sum_of_ints",
   "Sum of two ints",
   List(IntegerParam("a", "a"), IntegerParam("b", "b")),
-  s => f(s)
+  s => sumWrapper(s)
 )
 
 tc.expectDouble(
