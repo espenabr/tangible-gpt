@@ -20,36 +20,36 @@ case class Person(name: String, nationality: String, age: Int)
 given Codec[Person] = deriveCodec
 val example = Person("Jose", "Spain", 52)
 
-tc.expectJson("Give me 10 random people", List(example)).map { (response: Either[FailedInteraction, TangibleResponse[List[Person]]]) =>
-  ??? 
+tc.expectJson("Give me 10 random people", List(example)).map { 
+  (response: Either[FailedInteraction, TangibleResponse[List[Person]]]) => ??? 
 }
 ```
 
 ### Boolean response
 ```scala 3
-tc.expectJson("Is AI smarter most than humans?").amp { (response: Either[FailedInteraction, TangibleResponse[Boolean]]) =>
-  ??? 
+tc.expectJson("Is AI smarter most than humans?").amp { 
+  (response: Either[FailedInteraction, TangibleResponse[Boolean]]) => ??? 
 }
 ```
 
 ### Double response
 ```scala 3
-tc.expectDouble("Approximately how many people live in Norway?").map { (response: Either[FailedInteraction, TangibleResponse[Double]]) =>
-  ???
+tc.expectDouble("Approximately how many people live in Norway?").map { 
+  (response: Either[FailedInteraction, TangibleResponse[Double]]) => ???
 }
 ```
 
 ### Plain text
 ```scala 3
-tc.expectPlainText("How are you?").map { (response: TangibleResponse[String]) =>
-  ???
+tc.expectPlainText("How are you?").map { 
+  (response: TangibleResponse[String]) => ???
 }
 ```
 
 ### Optional response
 ```scala 3
-tc.expectDoubleOption("What is the meaning of life?").map { (response: Either[FailedInteraction, TangibleOptionResponse[Double]]) =>
-  ???
+tc.expectDoubleOption("What is the meaning of life?").map {
+  (response: Either[FailedInteraction, TangibleOptionResponse[Double]]) => ???
 }
 ```
 
@@ -79,9 +79,8 @@ val fc = FunctionCall(
 tc.expectDouble(
   "What is What is 87878 + 23255?",
   functionCalls = List(fc)
-).map { (response: Either[FailedInteraction, TangibleResponse[Double]]) =>
-  ???
-  
+).map {
+  (response: Either[FailedInteraction, TangibleResponse[Double]]) => ???
 }
 ```
 
