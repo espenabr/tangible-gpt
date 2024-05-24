@@ -1,5 +1,0 @@
-package tangiblegpt
-
-object Common:
-  
-  ???

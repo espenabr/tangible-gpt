@@ -28,10 +28,10 @@ object Common:
     new InteractionClient[IO](new GptApiClient[IO](client, apiKey))
 
   def extractKey(): String =
-    sys.env.get("GPT_CHAT_SEMIAUTOMATION_API_KEY") match
+    sys.env.get("TANGIBLE_GPT_OPENAI_KEY") match
       case Some(key) => key
       case None      =>
-        println("OpenAPI key must be provided as argument!")
+        println("Missing environment variable TANGIBLE_GPT_OPENAI_KEY - please set")
         ""
 
   def msg(content: String) =
