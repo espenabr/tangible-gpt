@@ -27,7 +27,7 @@ tangibleClient.expectJson("Give me 10 random people", List(example)).map {
 
 ### Boolean response
 ```scala 3
-tangibleClient.expectJson("Is AI smarter most than humans?").amp { 
+tangibleClient.expectJson("Is AI smarter than most humans?").amp { 
   (response: Either[FailedInteraction, TangibleResponse[Boolean]]) => ??? 
 }
 ```
