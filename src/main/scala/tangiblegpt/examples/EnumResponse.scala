@@ -16,7 +16,7 @@ object EnumResponse extends IOApp.Simple:
       val tc = createTangibleClient(client, extractKey())
 
       for
-        response <- tc.expectSelectOne("What is the most common color of a swan?", Color.values.toList)
+        response <- tc.expectEnumCase("What is the most common color of a swan?", Color.values.toList)
         _        <- response.map { r => Console[IO].println(r.value) }.getOrElse(IO.raiseError(new RuntimeException()))
       yield ()
     }

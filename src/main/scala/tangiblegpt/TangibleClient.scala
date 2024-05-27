@@ -262,7 +262,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
           .getOrElse(Left(ParseError(content, r.history)))
     }
 
-  def expectSelectOne[T](
+  def expectEnumCase[T](
       prompt: String,
       options: List[T],
       history: List[Message] = List.empty,
@@ -290,7 +290,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
         .getOrElse(Left(ParseError(content, history)))
     }
 
-  def expectSelectOneOption[T](
+  def expectEnumCaseOption[T](
       prompt: String,
       options: List[T],
       history: List[Message] = List.empty,
