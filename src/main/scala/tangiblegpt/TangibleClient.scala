@@ -438,6 +438,35 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
         .map { decoded => TangibleResponse[List[String]](decoded, r.value, r.history) }
         .leftMap(_ => ParseError(r.value, r.history))
     }
+  
+  def expectFiltered(
+      items: List[String],
+      predicate: String,
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple
+  ): F[Either[FailedInteraction, TangibleResponse[List[String]]]] =
+    val prompt =
+      s"""I have a list of items that I need to filter.
+         |Only include the items that adhere to the following predicate: $predicate
+         |
+         |The items are:
+         |${items.mkString("\n")}""".stripMargin
+
+    val responseFormatDescription =
+      s"""The response must be a filtered JSON array of strings (items), nothing else""".stripMargin
+
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      decode[List[String]](r.value)
+        .map { decoded => TangibleResponse[List[String]](decoded, r.value, r.history) }
+        .leftMap(_ => ParseError(r.value, r.history))
+    }
 
   private def plainTextChat(
       prompt: String,
