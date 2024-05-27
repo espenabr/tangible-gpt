@@ -20,7 +20,6 @@ object AuthorRecommender extends IOApp.Simple:
                               )
         _                  <- Console[IO].println(s"""Select your favourite author strengths""".stripMargin)
         favoriteStrengths  <- collectSelectedItems(strengthsOfAuthors.map(_.value).getOrElse(List.empty))
-        _                   = strengthsOfAuthors.foreach(_.printHistory())
         recommended        <-
           ic.expectPlainText(
             s"""My favorite strengths are: ${favoriteStrengths.mkString(", ")}

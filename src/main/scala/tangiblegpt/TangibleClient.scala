@@ -4,7 +4,8 @@ import tangiblegpt.gpt.GptApiClient
 import cats.effect.Concurrent
 import cats.implicits.*
 import io.circe
-import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveCodec, deriveEncoder}
+import io.circe.{Codec, Decoder, Encoder}
 import io.circe.parser.decode
 import io.circe.syntax.*
 import tangiblegpt.gpt.GptApiClient.Common.{Message, Role}
@@ -22,6 +23,7 @@ import tangiblegpt.model.ReasoningStrategy.{Simple, SuggestMultipleAndPickOne, T
 import tangiblegpt.model.{
   FailedInteraction,
   FunctionCall,
+  ItemGroup,
   ReasoningStrategy,
   TangibleEitherResponse,
   TangibleOptionResponse,
@@ -45,7 +47,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
     def encodeToJson(value: R): String = value.asJson.noSpaces
 
     val responseFormatDescription =
-      s"""There response must be in valid JSON and only JSON, nothing else
+      s"""The response must be in valid JSON and only JSON, nothing else
          |
          |Example:
          |${encodeToJson(example)}""".stripMargin
@@ -353,6 +355,58 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       else Left(FailedInteraction.ParseError(content, history))
     }
 
+  def expectGroups(
+      items: List[String],
+      groupNames: Option[Set[String]],
+      groupingCriteria: Option[String],
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple
+  ): F[Either[FailedInteraction, TangibleResponse[List[ItemGroup]]]] =
+    val prompt = groupNames match
+      case Some(gn) =>
+        s"""I want you to put some items into different groups.
+           |
+           |These groups are: ${gn.mkString(", ")}
+           |${groupingCriteria.map(gc => s"Items should be grouped by the following criteria: $gc")}
+           |
+           |Here are the items that should be distributed in the right groups:
+           |
+           |${items.mkString("\n")}""".stripMargin
+      case None     =>
+        s"""I want you to put some items into different groups.
+           |Make up some sensible names for these groups.
+           |${groupingCriteria.map(gc => s"Items should be grouped by the following criteria: $gc")}
+           |
+           |Here are the items that should be distributed in the right groups:
+           |
+           |${items.mkString("\n")}""".stripMargin
+
+    val example: List[ItemGroup] =
+      List(
+        ItemGroup("group1", List("item1", "item2")),
+        ItemGroup("group2", List("item3"))
+      )
+
+    given Codec[ItemGroup]        = deriveCodec
+    val responseFormatDescription =
+      s"""The response must be in valid JSON and only JSON, nothing else
+         |
+         |Example:
+         |${example.asJson}""".stripMargin
+
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      decode[List[ItemGroup]](r.value)
+        .map { decoded => TangibleResponse[List[ItemGroup]](decoded, r.value, r.history) }
+        .leftMap(_ => ParseError(r.value, r.history))
+    }
+
   private def plainTextChat(
       prompt: String,
       history: List[Message] = List.empty,
@@ -401,7 +455,6 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       functionCalls: List[FunctionCall[F]],
       history: List[Message] = List.empty
   ): F[TangibleResponse[String]] =
-
     val message  = userContentMessage(prompt)
     val messages = history :+ message
     val tools    = functionCallTools(functionCalls)
