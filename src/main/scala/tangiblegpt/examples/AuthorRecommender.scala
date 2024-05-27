@@ -15,7 +15,7 @@ object AuthorRecommender extends IOApp.Simple:
         authors             = input.split(",").toList.map(_.strip())
         strengthsOfAuthors <- ic.expectJson(
                                 s"""Given my favorite authors: ${authors.mkString(", ")}
-                                   |give me a lisrt of their strengths as authors in a single list""".stripMargin,
+                                   |give me a list of their strengths as authors in a single list""".stripMargin,
                                 List("strength1", "strength2", "strengthN")
                               )
         _                  <- Console[IO].println(s"""Select your favourite author strengths""".stripMargin)

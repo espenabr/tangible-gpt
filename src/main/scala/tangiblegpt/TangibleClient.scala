@@ -407,6 +407,38 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
         .leftMap(_ => ParseError(r.value, r.history))
     }
 
+  def expectSorted(
+      items: List[String],
+      sortingCriteria: Option[String],
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple,
+  ): F[Either[FailedInteraction, TangibleResponse[List[String]]]] =
+    val prompt = sortingCriteria match
+      case Some(sc) =>
+        s"""I want you to sort a list of items based on the following criteria: $sc
+           |
+           |Here are the items to be sorted:
+           |${items.mkString("\n")}""".stripMargin
+      case None =>
+        s"""I want you to sort the following items in the most obvious way:
+           |${items.mkString("\n")}""".stripMargin
+
+    val responseFormatDescription =
+      s"""The response must be a sorted JSON array of strings (items), nothing else""".stripMargin
+
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      decode[List[String]](r.value)
+        .map { decoded => TangibleResponse[List[String]](decoded, r.value, r.history) }
+        .leftMap(_ => ParseError(r.value, r.history))
+    }
+
   private def plainTextChat(
       prompt: String,
       history: List[Message] = List.empty,
