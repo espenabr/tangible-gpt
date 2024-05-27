@@ -118,4 +118,17 @@ val result: IO[Either[FailedInteraction, ActivityDetails]] =
   yield response2.value).value
 ```
 
+### Enums (or other selection of values)
+```scala 3
+enum Color:
+  case Red, Blue, Black, White
+
+tc.expectEnumCase(
+  "What is the most common color of a swan?",
+  Color.values.toList
+).map { (response: Either[FailedInteraction, TangibleResponse[Color]]) =>
+  ???
+}
+```
+
 For more examples of usage, have a look in the `examples` folder!
