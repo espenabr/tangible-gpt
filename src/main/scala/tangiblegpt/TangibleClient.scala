@@ -322,6 +322,37 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
           .getOrElse(Left(ParseError(content, history)))
     }
 
+  def expectEnumCases[T](
+      prompt: String,
+      options: List[T],
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple
+  ): F[Either[FailedInteraction, TangibleResponse[Set[T]]]] =
+    val responseFormatDescription =
+      s"""Given the following options:
+         |${options.map(_.toString).mkString(", ")}
+         |I want you to respond with those that apply. If none of them apply, just say "None".
+         |I want a list of options on a single line, separated by comma, and nothing else in the response.""".stripMargin
+
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      val content = r.value
+
+      def toResponse(value: Set[T]) = TangibleResponse(value, content, r.history)
+      val splitted: Set[String]     = content.split(",").toList.map(_.toLowerCase.strip).toSet
+      val allSelectionsValid        = splitted.forall { o => options.exists(_.toString === o) }
+      val result                    = options.filter { o => splitted.exists(_ === o.toString.toLowerCase) }.toSet
+
+      if allSelectionsValid then Right(toResponse(result))
+      else Left(FailedInteraction.ParseError(content, history))
+    }
+
   private def plainTextChat(
       prompt: String,
       history: List[Message] = List.empty,
