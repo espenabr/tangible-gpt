@@ -262,6 +262,84 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
           .getOrElse(Left(ParseError(content, r.history)))
     }
 
+  def expectSelectOne[T](
+      prompt: String,
+      options: List[T],
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple
+  ): F[Either[FailedInteraction, TangibleResponse[T]]] =
+    val responseFormatDescription =
+      s"""I want you to respond with one of the following values, nothing else:
+         |${options.map(_.toString).mkString(", ")}
+         |""".stripMargin
+
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      val content              = r.value
+      def toResponse(value: T) = TangibleResponse(value, content, r.history)
+
+      options
+        .find(_.toString.toLowerCase() === content.trim.toLowerCase())
+        .map(e => Right(toResponse(e)))
+        .getOrElse(Left(ParseError(content, history)))
+    }
+
+  def expectSelectOneOption[T](
+      prompt: String,
+      options: List[T],
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple
+  ): F[Either[FailedInteraction, TangibleOptionResponse[T]]] =
+    val responseFormatDescription =
+      s"""If you don't know, simply reply "I don't know", nothing else.
+         |Otherwise, I want you to respond with one of the following values, nothing else:
+         |${options.map(_.toString).mkString(", ")}
+         |""".stripMargin
+
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      val content = r.value
+
+      def toResponse(value: Option[T]) = TangibleOptionResponse(value, content, r.history)
+
+      if iDontKnow(r) then Right(toResponse(None))
+      else
+        options
+          .find(_.toString.toLowerCase() === content.trim.toLowerCase())
+          .map(e => Right(toResponse(Some(e))))
+          .getOrElse(Left(ParseError(content, history)))
+    }
+
+  private def plainTextChat(
+      prompt: String,
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple
+  ): F[TangibleResponse[String]] =
+    val message  = userContentMessage(prompt)
+    val messages = history :+ message
+
+    gptApiClient.chatCompletions(messages).map { response =>
+      val reply = response.choices.last.message
+      TangibleResponse[String](
+        reply.content,
+        reply.content,
+        history :+ message :+ reply
+      )
+    }
+
   private def parseBoolean(s: String): Option[Boolean] = s.toLowerCase match
     case "false" | "no" | "n" | "0" => Some(false)
     case "true" | "yes" | "y" | "1" => Some(true)
@@ -284,7 +362,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history: List[Message],
       functionCalls: List[FunctionCall[F]]
   ): F[TangibleResponse[String]] =
-    if functionCalls.isEmpty then expectPlainText(prompt, history = history)
+    if functionCalls.isEmpty then plainTextChat(prompt, history = history)
     else chatWithFunctionCalls(prompt, functionCalls, history)
 
   private def chatWithFunctionCalls(

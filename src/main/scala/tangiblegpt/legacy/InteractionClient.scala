@@ -3,9 +3,8 @@ package tangiblegpt.legacy
 import cats.effect.Concurrent
 import tangiblegpt.gpt.GptApiClient
 import tangiblegpt.gpt.GptApiClient.Common.{Message, Role}
-import tangiblegpt.model.{FailedInteraction, FunctionCall, ReasoningStrategy, TangibleEitherResponse, TangibleOptionResponse, TangibleResponse}
+import tangiblegpt.model.{FunctionCall, ReasoningStrategy}
 import ReasoningStrategy.{Simple, SuggestMultipleAndPickOne, ThinkStepByStep}
-import tangiblegpt.gpt.GptApiClient.Common.Message.ContentMessage
 import tangiblegpt.gpt.GptApiClient.Common.Role.User
 import tangiblegpt.model.Param.{EnumParam, IntegerParam, StringParam}
 import tangiblegpt.gpt.GptApiClient.Request.Property.{EnumProperty, IntegerProperty, StringProperty}

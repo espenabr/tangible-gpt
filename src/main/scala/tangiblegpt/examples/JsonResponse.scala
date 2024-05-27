@@ -4,7 +4,7 @@ import cats.effect.{ExitCode, IO, IOApp}
 import io.circe.{Decoder, Encoder}
 import io.circe.generic.semiauto.*
 import io.circe.*
- import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
+import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
 
 object JsonResponse extends IOApp:
 
