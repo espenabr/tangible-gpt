@@ -1,8 +1,8 @@
 package tangiblegpt.examples
 
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{IO, IOApp}
 import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
-import tangiblegpt.model.{FailedInteraction, ReasoningStrategy, TangibleResponse}
+import tangiblegpt.model.ReasoningStrategy
 
 object CustomReasoningStrategy extends IOApp.Simple:
 
@@ -11,7 +11,6 @@ object CustomReasoningStrategy extends IOApp.Simple:
    * 
    * Example is borrowed from the OpenAI Cookbook
    */
-  
   override val run: IO[Unit] = clientResource
     .use { client =>
       val tc = createTangibleClient(client, extractKey())

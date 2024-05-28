@@ -4,7 +4,7 @@ import tangiblegpt.gpt.GptApiClient
 import cats.effect.Concurrent
 import cats.implicits.*
 import io.circe
-import io.circe.generic.semiauto.{deriveCodec, deriveEncoder}
+import io.circe.generic.semiauto.deriveCodec
 import io.circe.{Codec, Decoder, Encoder}
 import io.circe.parser.decode
 import io.circe.syntax.*
@@ -13,10 +13,7 @@ import tangiblegpt.gpt.GptApiClient.Common.Message.{ContentMessage, ResultFromTo
 import tangiblegpt.gpt.GptApiClient.Common.Role.User
 import tangiblegpt.gpt.GptApiClient.Request.Property.{EnumProperty, IntegerProperty, StringProperty}
 import tangiblegpt.gpt.GptApiClient.Request.{Parameters, Property, RequestFunction, Tool}
-import tangiblegpt.gpt.GptApiClient.Response.FinishReason
-import tangiblegpt.gpt.GptApiClient.Response.FinishReason.Choice.{StopChoice, ToolCallsChoice}
-import tangiblegpt.gpt.GptApiClient.Response.FinishReason.CompletionResponse
-import tangiblegpt.legacy.model.{ChatResponse, InteractionHandler, SimpleChatResponse}
+import tangiblegpt.gpt.GptApiClient.Response.CompletionResponse
 import tangiblegpt.model.FailedInteraction.ParseError
 import tangiblegpt.model.Param.{EnumParam, IntegerParam, StringParam}
 import tangiblegpt.model.ReasoningStrategy.{Simple, SuggestMultipleAndPickOne, ThinkStepByStep}
@@ -29,6 +26,7 @@ import tangiblegpt.model.{
   TangibleOptionResponse,
   TangibleResponse
 }
+import tangiblegpt.gpt.GptApiClient.Response.Choice.{StopChoice, ToolCallsChoice}
 
 import scala.util.Try
 
@@ -412,7 +410,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       sortingCriteria: Option[String],
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple,
+      reasoningStrategy: ReasoningStrategy = Simple
   ): F[Either[FailedInteraction, TangibleResponse[List[String]]]] =
     val prompt = sortingCriteria match
       case Some(sc) =>
@@ -420,7 +418,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
            |
            |Here are the items to be sorted:
            |${items.mkString("\n")}""".stripMargin
-      case None =>
+      case None     =>
         s"""I want you to sort the following items in the most obvious way:
            |${items.mkString("\n")}""".stripMargin
 
@@ -438,7 +436,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
         .map { decoded => TangibleResponse[List[String]](decoded, r.value, r.history) }
         .leftMap(_ => ParseError(r.value, r.history))
     }
-  
+
   def expectFiltered(
       items: List[String],
       predicate: String,

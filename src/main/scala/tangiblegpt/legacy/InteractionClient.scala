@@ -9,12 +9,11 @@ import tangiblegpt.gpt.GptApiClient.Common.Role.User
 import tangiblegpt.model.Param.{EnumParam, IntegerParam, StringParam}
 import tangiblegpt.gpt.GptApiClient.Request.Property.{EnumProperty, IntegerProperty, StringProperty}
 import cats.implicits.*
-import tangiblegpt.gpt.GptApiClient.Response.FinishReason.CompletionResponse
-import tangiblegpt.gpt.GptApiClient.Response.FinishReason.Choice.{StopChoice, ToolCallsChoice}
 import tangiblegpt.gpt.GptApiClient.Common.Message.{ContentMessage, ResultFromToolMessage}
 import tangiblegpt.gpt.GptApiClient.Request.{Parameters, RequestFunction, Tool}
+import tangiblegpt.gpt.GptApiClient.Response.CompletionResponse
 import tangiblegpt.legacy.model.{ChatResponse, InteractionHandler, SimpleChatResponse}
-
+import tangiblegpt.gpt.GptApiClient.Response.Choice.{StopChoice, ToolCallsChoice}
 
 class InteractionClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
 
