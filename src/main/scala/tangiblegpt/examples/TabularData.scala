@@ -1,9 +1,8 @@
-package tangiblegpt.legacy.examples
+package tangiblegpt.examples
 
 import cats.effect.std.Console
 import cats.effect.{ExitCode, IO, IOApp}
-import tangiblegpt.examples.Common.{clientResource, createLegacyInteractionClient, extractKey}
-import tangiblegpt.legacy.interactionhandlers.ResponseAsTable.{tableHandler, TabularDataRequest}
+import tangiblegpt.examples.Common.{clientResource, createTangibleClient, extractKey}
 import tangiblegpt.model.Table
 import tangiblegpt.model.Table.Cell.{BooleanCell, SingleChoiceCell, TextCell}
 import tangiblegpt.model.Table.{Cell, Column, Row}
@@ -13,19 +12,15 @@ import scala.util.Try
 object TabularData extends IOApp:
 
   /*
-   * Ask for data in a tablular format with specific data types per column
+   * Ask for data in a tabular format with specific data types per column
    * Also, example of how the Table type can be mapped to case classes
    */
-
   def run(args: List[String]): IO[ExitCode] = clientResource
     .use { client =>
-      val ic = createLegacyInteractionClient(client, extractKey())
+      val tc = createTangibleClient(client, extractKey())
       for
-        response  <- ic.chat(
-                       TabularDataRequest("Characters from the Donald Duck & co. universe.", tableColumns),
-                       tableHandler
-                     )
-        characters = response.value.get.rows.map(toCharacter)
+        response  <- tc.expectTable("10 characters from the Donald Duck & co. universe.", tableColumns)
+        characters = response.toOption.map(_.value).map(_.rows.map(toCharacter)).getOrElse(List.empty)
         _         <- Console[IO].println(characters.mkString("\n"))
       yield ExitCode.Success
     }

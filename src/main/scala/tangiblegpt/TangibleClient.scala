@@ -609,7 +609,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
   private def parseTable(columns: List[Column])(s: String): Option[Table] =
     val lines = s.split("\n").toList.filter(_.contains(";"))
     val rows  = lines.map { line =>
-      val parts = line.split(";")
+      val parts = line.split(";").toList.map(_.stripPrefix("\"").stripSuffix("\""))
       val cells = columns.indices.zip(columns).toList.map { case (index, column) =>
         val part: String = parts(index)
         column match

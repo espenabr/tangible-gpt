@@ -4,7 +4,7 @@ import cats.effect.std.Console
 import cats.effect.{ExitCode, IO, IOApp}
 import cats.implicits.*
 import tangiblegpt.Input.{collectAnswers, prompt}
-import tangiblegpt.examples.Common.{clientResource, createLegacyInteractionClient, createTangibleClient, extractKey}
+import tangiblegpt.examples.Common.{clientResource, createLegacyInteractionClient, extractKey}
 import tangiblegpt.legacy.interactionhandlers.AnswerQuestions.answerQuestionsHandler
 import tangiblegpt.legacy.interactionhandlers.RequestQuestions.QuestionType.YesNoQuestions
 import tangiblegpt.legacy.interactionhandlers.RequestQuestions.{
