@@ -4,8 +4,8 @@ import tangiblegpt.legacy.parsers.Parsers
 import tangiblegpt.legacy.renderers.Renderers
 import tangiblegpt.model.Table
 import tangiblegpt.model.Table.Column
-import Renderers.{describeColumn, renderTable}
 import tangiblegpt.legacy.model.InteractionHandler
+import Renderers.{describeColumn, renderTable}
 
 object ExpandTable:
 
@@ -41,5 +41,4 @@ object ExpandTable:
             |${ResponseAsTable.specifyTableFormat(e.table.columns)}""".stripMargin,
     (e, s) => Parsers.parseTable(e.table.columns)(s),
     objective = Some("Expand this table with another row"),
-
   )

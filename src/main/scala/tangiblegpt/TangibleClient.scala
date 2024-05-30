@@ -22,11 +22,13 @@ import tangiblegpt.model.{
   FunctionCall,
   ItemGroup,
   ReasoningStrategy,
+  Table,
   TangibleEitherResponse,
   TangibleOptionResponse,
   TangibleResponse
 }
 import tangiblegpt.gpt.GptApiClient.Response.Choice.{StopChoice, ToolCallsChoice}
+import tangiblegpt.model.Table.{Cell, Column, Row}
 
 import scala.util.Try
 
@@ -466,6 +468,103 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
         .leftMap(_ => ParseError(r.value, r.history))
     }
 
+  def expectTable(
+      prompt: String,
+      columns: List[Column],
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple
+  ): F[Either[FailedInteraction, TangibleResponse[Table]]] =
+    val responseFormatDescription =
+      s"""The response must be CSV format (semicolon separated) with columns: ${columns.map(_.name).mkString(";")}
+         |No header row, just data
+         |
+         |Columns:
+         |${columns.map(describeColumn).mkString("\n")}""".stripMargin
+
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      parseTable(columns)(r.value)
+        .map { parsed => Right(TangibleResponse(parsed, r.rawMessage, r.history)) }
+        .getOrElse { Left(ParseError(r.rawMessage, r.history)) }
+    }
+
+  def expectTableWithAddedColumn(
+      columnToAdd: Column,
+      intention: String,
+      table: Table,
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple
+  ): F[Either[FailedInteraction, TangibleResponse[Table]]] =
+    val prompt                    =
+      s"""${renderTable(table)}
+         |
+         |Expand this table with another column:
+         |${describeColumn(columnToAdd)}
+         |
+         |$intention""".stripMargin
+    val resultColumns             = table.columns :+ columnToAdd
+    val responseFormatDescription =
+      s"""The response must be CSV format (semicolon separated) with columns: ${resultColumns.map(_.name).mkString(";")}
+         |No header row, just data
+         |
+         |Columns:
+         |${table.columns.map(describeColumn).mkString("\n")}""".stripMargin
+
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      parseTable(table.columns :+ columnToAdd)(r.value)
+        .map { parsed => Right(TangibleResponse(parsed, r.rawMessage, r.history)) }
+        .getOrElse {
+          Left(ParseError(r.rawMessage, r.history))
+        }
+    }
+
+  def expectTableWithAddedRow(
+      table: Table,
+      rowDescription: String,
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple
+  ): F[Either[FailedInteraction, TangibleResponse[Table]]] =
+    val prompt =
+      s"""${renderTable(table)}
+         |
+         |Expand this table with another row:
+         |$rowDescription""".stripMargin
+
+    val responseFormatDescription =
+      s"""The response must be CSV format (semicolon separated) with columns: ${table.columns.map(_.name).mkString(";")}
+         |No header row, just data
+         |
+         |Columns:
+         |${table.columns.map(describeColumn).mkString("\n")}""".stripMargin
+
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription)
+    ).map { r =>
+      parseTable(table.columns)(r.value)
+        .map { parsed => Right(TangibleResponse(parsed, r.rawMessage, r.history)) }
+        .getOrElse {
+          Left(ParseError(r.rawMessage, r.history))
+        }
+    }
+
   private def plainTextChat(
       prompt: String,
       history: List[Message] = List.empty,
@@ -488,6 +587,47 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
     case "false" | "no" | "n" | "0" => Some(false)
     case "true" | "yes" | "y" | "1" => Some(true)
     case _                          => None
+
+  private def parseSingleChoice(s: String, options: List[String]): Option[String] = options.find(_ === s)
+
+  private def renderTable(table: Table) =
+    s"""csv format (semicolon separated) with columns: ${table.columns.map(_.name).mkString(";")}:
+       |${table.rows.map(serializedRow).mkString("\n")}
+       |""".stripMargin
+
+  private def serializedRow(row: Row): String =
+    row.columns.map(serializeCell).mkString(";")
+
+  private def serializeCell(cell: Cell): String =
+    cell match {
+      case Cell.TextCell(v, _)         => v
+      case Cell.NumberCell(n, _)       => n.toString
+      case Cell.BooleanCell(b, _)      => b.toString
+      case Cell.SingleChoiceCell(c, _) => c
+    }
+
+  private def parseTable(columns: List[Column])(s: String): Option[Table] =
+    val lines = s.split("\n").toList.filter(_.contains(";"))
+    val rows  = lines.map { line =>
+      val parts = line.split(";")
+      val cells = columns.indices.zip(columns).toList.map { case (index, column) =>
+        val part: String = parts(index)
+        column match
+          case Column.BooleanColumn(_)               => parseBoolean(part).map(p => Cell.BooleanCell(p, column))
+          case Column.NumberColumn(_)                => part.toDoubleOption.map(n => Cell.NumberCell(n, column))
+          case Column.TextColumn(_)                  => Some(Cell.TextCell(part, column))
+          case Column.SingleChoiceColumn(_, options) =>
+            parseSingleChoice(part, options).map(s => Cell.SingleChoiceCell(s, column))
+      }
+      Option.when(cells.forall(_.isDefined))(Row(cells.flatMap(_.toList)))
+    }
+    Option.when(rows.forall(_.isDefined))(Table(columns, rows.flatMap(_.toList)))
+
+  private def describeColumn(c: Column) = c match
+    case Column.BooleanColumn(name)               => s"$name: Boolean (true or false)"
+    case Column.NumberColumn(name)                => s"$name: Number (any number including decimal)"
+    case Column.TextColumn(name)                  => s"$name: String"
+    case Column.SingleChoiceColumn(name, options) => s"$name: One of the following values: ${options.mkString(", ")}"
 
   private def interact(
       prompt: String,
