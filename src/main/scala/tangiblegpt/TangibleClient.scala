@@ -18,9 +18,12 @@ import tangiblegpt.model.FailedInteraction.ParseError
 import tangiblegpt.model.Param.{EnumParam, IntegerParam, StringParam}
 import tangiblegpt.model.ReasoningStrategy.{Simple, SuggestMultipleAndPickOne, ThinkStepByStep}
 import tangiblegpt.model.{
+  AnswerToQuestionFromGpt,
   FailedInteraction,
   FunctionCall,
   ItemGroup,
+  QuestionFromGpt,
+  QuestionType,
   ReasoningStrategy,
   Table,
   TangibleEitherResponse,
@@ -29,6 +32,9 @@ import tangiblegpt.model.{
 }
 import tangiblegpt.gpt.GptApiClient.Response.Choice.{StopChoice, ToolCallsChoice}
 import tangiblegpt.model.Table.{Cell, Column, Row}
+import tangiblegpt.model.QuestionType.*
+import tangiblegpt.model.QuestionFromGpt.*
+import tangiblegpt.model.AnswerToQuestionFromGpt.*
 
 import scala.util.Try
 
@@ -39,7 +45,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       example: R,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   )(implicit
       decoder: Decoder[R],
       encoder: Encoder[R]
@@ -57,7 +64,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       decode[R](r.value)
         .map { decoded => TangibleResponse[R](decoded, r.value, r.history) }
@@ -69,7 +77,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       example: R,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   )(implicit
       decoder: Decoder[R],
       encoder: Encoder[R]
@@ -87,7 +96,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       if iDontKnow(r) then Right(TangibleOptionResponse[R](None, r.value, r.history))
       else
@@ -105,7 +115,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       rightExample: R,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   )(implicit
       leftDecoder: Decoder[L],
       leftEncoder: Encoder[L],
@@ -125,7 +136,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       val decodedLeft: Either[circe.Error, L]  = decode[L](r.value)
       val decodedRight: Either[circe.Error, R] = decode[R](r.value)
@@ -139,21 +151,24 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       prompt: String,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[TangibleResponse[String]] =
     interact(
       initialPrompt(reasoningStrategy, prompt, None),
       history,
       functionCalls,
       reasoningStrategy,
-      None
+      None,
+      withFollowupQuestions
     ).map { r => TangibleResponse[String](r.value, r.value, r.history) }
 
   def expectPlainTextOption(
       prompt: String,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleOptionResponse[String]]] =
     val responseFormatDescription =
       s"""If you don't know the answer, simply say "I don't know"""".stripMargin
@@ -163,7 +178,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       val value = if iDontKnow(r) then None else Some(r.value)
       Right(TangibleOptionResponse[String](value, r.value, r.history))
@@ -173,7 +189,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       prompt: String,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleResponse[Boolean]]] =
     val responseFormatDescription =
       """I only want a yes or no answer, nothing else. Reply with either "yes" or "no""""
@@ -183,7 +200,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       parseBoolean(r.value) match
         case Some(b) => Right(TangibleResponse[Boolean](b, r.value, r.history))
@@ -194,7 +212,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       prompt: String,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleOptionResponse[Boolean]]] =
     val responseFormatDescription =
       s"""If you don't know the answer, simply reply with "I don't know", nothing else.
@@ -205,7 +224,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       def toResponse(value: Option[Boolean]) =
         TangibleOptionResponse[Boolean](value, r.value, r.history)
@@ -221,7 +241,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       prompt: String,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleResponse[Double]]] =
     val responseFormatDescription = "I only want a number (all digits) as an answer, nothing else."
 
@@ -230,7 +251,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       Try { r.value.toDouble }.toOption
         .map { d => Right(TangibleResponse(d, r.value, r.history)) }
@@ -241,7 +263,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       prompt: String,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleOptionResponse[Double]]] =
     val responseFormatDescription =
       s"""If you don't know the answer, simply reply with "I don't know", nothing else.
@@ -252,7 +275,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       val content                           = r.value
       def toResponse(value: Option[Double]) = TangibleOptionResponse(value, content, r.history)
@@ -269,7 +293,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       options: List[T],
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleResponse[T]]] =
     val responseFormatDescription =
       s"""I want you to respond with one of the following values, nothing else:
@@ -281,7 +306,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       val content              = r.value
       def toResponse(value: T) = TangibleResponse(value, content, r.history)
@@ -297,7 +323,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       options: List[T],
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleOptionResponse[T]]] =
     val responseFormatDescription =
       s"""If you don't know, simply reply "I don't know", nothing else.
@@ -310,7 +337,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       val content = r.value
 
@@ -329,7 +357,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       options: List[T],
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleResponse[Set[T]]]] =
     val responseFormatDescription =
       s"""Given the following options:
@@ -342,7 +371,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       val content = r.value
 
@@ -361,7 +391,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       groupingCriteria: Option[String],
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleResponse[List[ItemGroup]]]] =
     val prompt = groupNames match
       case Some(gn) =>
@@ -400,11 +431,34 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       decode[List[ItemGroup]](r.value)
         .map { decoded => TangibleResponse[List[ItemGroup]](decoded, r.value, r.history) }
         .leftMap(_ => ParseError(r.value, r.history))
+    }
+
+  def expectItems(
+      prompt: String,
+      history: List[Message] = List.empty,
+      functionCalls: List[FunctionCall[F]] = List.empty,
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
+  ): F[Either[FailedInteraction, TangibleResponse[List[String]]]] =
+    val responseFormatDescription = "I only want a list of items. Each item on its own line. Nothing else."
+
+    interact(
+      initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
+      history,
+      functionCalls,
+      reasoningStrategy,
+      Some(responseFormatDescription),
+      withFollowupQuestions
+    ).map { r =>
+      val items = r.value.split("\n").toList.map(_.strip()).filter(_.nonEmpty)
+      if items.nonEmpty then Right(TangibleResponse[List[String]](items, r.value, r.history))
+      else Left(ParseError(r.value, r.history))
     }
 
   def expectSorted(
@@ -412,7 +466,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       sortingCriteria: Option[String],
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleResponse[List[String]]]] =
     val prompt = sortingCriteria match
       case Some(sc) =>
@@ -432,7 +487,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       decode[List[String]](r.value)
         .map { decoded => TangibleResponse[List[String]](decoded, r.value, r.history) }
@@ -444,7 +500,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       predicate: String,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleResponse[List[String]]]] =
     val prompt =
       s"""I have a list of items that I need to filter.
@@ -461,7 +518,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       decode[List[String]](r.value)
         .map { decoded => TangibleResponse[List[String]](decoded, r.value, r.history) }
@@ -473,7 +531,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       columns: List[Column],
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleResponse[Table]]] =
     val responseFormatDescription =
       s"""The response must be CSV format (semicolon separated) with columns: ${columns.map(_.name).mkString(";")}
@@ -487,7 +546,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       parseTable(columns)(r.value)
         .map { parsed => Right(TangibleResponse(parsed, r.rawMessage, r.history)) }
@@ -500,7 +560,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       table: Table,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleResponse[Table]]] =
     val prompt                    =
       s"""${renderTable(table)}
@@ -522,7 +583,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       parseTable(table.columns :+ columnToAdd)(r.value)
         .map { parsed => Right(TangibleResponse(parsed, r.rawMessage, r.history)) }
@@ -536,7 +598,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       rowDescription: String,
       history: List[Message] = List.empty,
       functionCalls: List[FunctionCall[F]] = List.empty,
-      reasoningStrategy: ReasoningStrategy = Simple
+      reasoningStrategy: ReasoningStrategy = Simple,
+      withFollowupQuestions: Option[FollowupQuestions] = None
   ): F[Either[FailedInteraction, TangibleResponse[Table]]] =
     val prompt =
       s"""${renderTable(table)}
@@ -556,7 +619,8 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       history,
       functionCalls,
       reasoningStrategy,
-      Some(responseFormatDescription)
+      Some(responseFormatDescription),
+      withFollowupQuestions
     ).map { r =>
       parseTable(table.columns)(r.value)
         .map { parsed => Right(TangibleResponse(parsed, r.rawMessage, r.history)) }
@@ -629,17 +693,48 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
     case Column.TextColumn(name)                  => s"$name: String"
     case Column.SingleChoiceColumn(name, options) => s"$name: One of the following values: ${options.mkString(", ")}"
 
+  case class FollowupQuestions(
+      questionType: QuestionType,
+      noOfQuestions: Option[Int],
+      collectAnswers: List[QuestionFromGpt] => F[List[AnswerToQuestionFromGpt]]
+  )
+
   private def interact(
       prompt: String,
       history: List[Message],
       functionCalls: List[FunctionCall[F]],
       reasoningStrategy: ReasoningStrategy,
-      responseFormatDescription: Option[String]
+      responseFormatDescription: Option[String],
+      withFollowupQuestions: Option[FollowupQuestions]
   ): F[TangibleResponse[String]] =
-    for
-      response      <- withPossibleFunctionCalls(prompt, history, functionCalls)
-      finalResponse <- afterPossibleReasoning(response, reasoningStrategy, responseFormatDescription)
-    yield finalResponse
+    withFollowupQuestions match
+      case Some(fq) =>
+        val followupQuestionsPrompt =
+          s"""$prompt
+             |
+             |${toFollowupQuestionsPrompt(fq.questionType, fq.noOfQuestions)}""".stripMargin
+
+        def answersPrompt(answers: List[AnswerToQuestionFromGpt]) =
+          s"""${renderAnswers(answers)}
+             |
+             |$prompt""".stripMargin
+
+        for
+          questionsResponse <- plainTextChat(followupQuestionsPrompt, history = history)
+          parsedQuestions    = parseQuestions(fq.questionType, questionsResponse.value).getOrElse(List.empty)
+          answers           <- fq.collectAnswers(parsedQuestions)
+          response          <- withPossibleFunctionCalls(
+                                 answersPrompt(answers),
+                                 history,
+                                 functionCalls
+                               )
+          finalResponse     <- afterPossibleReasoning(response, reasoningStrategy, responseFormatDescription)
+        yield finalResponse
+      case None     =>
+        for
+          response      <- withPossibleFunctionCalls(prompt, history, functionCalls)
+          finalResponse <- afterPossibleReasoning(response, reasoningStrategy, responseFormatDescription)
+        yield finalResponse
 
   private def withPossibleFunctionCalls(
       prompt: String,
@@ -757,3 +852,76 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       )
     )
   )
+
+  private def parseQuestions(questionType: QuestionType, s: String): Option[List[QuestionFromGpt]] =
+    val lines     = s.split("\n")
+    val questions = (1 to lines.length).toList.zip(lines).map { case (idx, line) =>
+      questionType match {
+        case YesNoQuestions             => QuestionFromGpt.BooleanQuestionFromGpt(idx, line)
+        case TextQuestions              => QuestionFromGpt.TextQuestionFromGpt(idx, line)
+        case SingleChoiceQuestions(_)   =>
+          val parts = line.split(";").toList
+          QuestionFromGpt.SingleChoiceQuestionFromGpt(idx, parts.head, parts.tail)
+        case MultipleChoiceQuestions(_) =>
+          val parts = line.split(";").toList
+          QuestionFromGpt.MultipleChoiceQuestionFromGpt(idx, parts.head, parts.tail)
+      }
+    }
+    Some(questions) // TODO None if parse error
+
+  private def toFollowupQuestionsPrompt(questionType: QuestionType, noOfQuestions: Option[Int]) =
+    val describePossibleAnswers = questionType match {
+      case YesNoQuestions                       =>
+        s"""All questions should only have "yes" or "no" answers. ${noOfQuestions.map(n => s"$n questions total.")}"""
+      case TextQuestions                        => noOfQuestions.map(n => s"$n questions total.").getOrElse("")
+      case SingleChoiceQuestions(noOfOptions)   => questionsWithChoicesPrompt(noOfQuestions, noOfOptions)
+      case MultipleChoiceQuestions(noOfOptions) => questionsWithChoicesPrompt(noOfQuestions, noOfOptions)
+    }
+
+    s"""
+       |I want a list of questions, one on each line.
+       |No lines should be prefixed with a number or any other character to indicate it's an item in a list, only the item itself and the options.
+       |$describePossibleAnswers
+       |""".stripMargin
+
+  private def questionsWithChoicesPrompt(noOfQuestions: Option[Int], noOfOptions: Option[Int]) =
+    val example = noOfOptions match
+      case Some(n) =>
+        s"""<question1>;${(1 to n).map(n => s"<option$n>").mkString(";")}
+           |<question2>;${(1 to n).map(n => s"<option$n>").mkString(";")}
+           |...""".stripMargin
+      case None    =>
+        s"""<question1>;<option1>;<option2>;<option3>
+           |<question2>;<option1>;<option2>;<option3>
+           |...""".stripMargin
+
+    s"""The response must be a list of questions, one line each.
+       |Each line should start with the question, continuing with a list of possible options as answer, all separated by ; (semicolon).
+       |No lines should be prefixed with a number or any other character to indicate it's an item in a list, only the item itself and the options.
+       |${noOfOptions
+        .map(n => s"Each questions should have $n possible answers each.")
+        .getOrElse("Each question should have a number of possible answers each.")}
+       |
+       |Example:
+       |$example
+       |
+       |I want nothing else in the response except these questions with options.""".stripMargin
+
+  private def renderAnswers(answers: List[AnswerToQuestionFromGpt]) =
+    answers.map(describeAnswer).mkString("\n")
+
+  private def describeAnswer(answer: AnswerToQuestionFromGpt) = {
+    val (q, a) = answer match
+      case AnswerToBooleanQuestionFromGpt(question, answer)               => (question, yesNo(answer))
+      case AnswerToTextQuestionFromQpt(question, answer)                  => (question, answer)
+      case AnswerToSingleChoiceQuestionFromGpt(question, index)           =>
+        (question, question.options(index))
+      case AnswerToMultipleChoiceQuestionFromGpt(question, answerIndices) =>
+        (question, answerIndices.map(_ + 1).mkString(", "))
+
+    s"""Question: ${q.question}
+       |Answer: $a
+       |""".stripMargin
+  }
+
+  private def yesNo(b: Boolean) = if b then "yes" else "no"

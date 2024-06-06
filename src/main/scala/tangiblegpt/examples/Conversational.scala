@@ -24,7 +24,8 @@ object Conversational extends IOApp.Simple:
 
       val result: IO[Either[FailedInteraction, ActivityDetails]] =
         (for
-          response1 <- EitherT(tc.expectJson("I'm bored, give me some suggestions of things to do", List(ThingToDo("activity"))))
+          response1 <-
+            EitherT(tc.expectJson("I'm bored, give me some suggestions of things to do", List(ThingToDo("activity"))))
           response2 <- EitherT(
                          tc.expectJson(
                            s"Tell me more about ${Random.shuffle(response1.value).head.activity}",

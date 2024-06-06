@@ -6,20 +6,9 @@ import scala.io.Source
 import cats.effect.std.Console
 import cats.effect.IO
 import cats.implicits.*
-import tangiblegpt.legacy.interactionhandlers.AnswerQuestions.AnswerToQuestionFromGpt
-import tangiblegpt.legacy.interactionhandlers.AnswerQuestions.AnswerToQuestionFromGpt.{
-  AnswerToBooleanQuestionFromGpt,
-  AnswerToMultipleChoiceQuestionFromGpt,
-  AnswerToSingleChoiceQuestionFromGpt,
-  AnswerToTextQuestionFromQpt
-}
-import tangiblegpt.legacy.interactionhandlers.RequestQuestions.QuestionFromGpt
-import tangiblegpt.legacy.interactionhandlers.RequestQuestions.QuestionFromGpt.{
-  BooleanQuestionFromGpt,
-  MultipleChoiceQuestionFromGpt,
-  SingleChoiceQuestionFromGpt,
-  TextQuestionFromGpt
-}
+import tangiblegpt.model.{AnswerToQuestionFromGpt, QuestionFromGpt}
+import tangiblegpt.model.QuestionFromGpt.*
+import tangiblegpt.model.AnswerToQuestionFromGpt.*
 
 object Input:
 

@@ -19,20 +19,12 @@ object JsonEitherResponse extends IOApp.Simple:
 
       val tc = createTangibleClient(client, extractKey())
 
-      tc.expectJsonEither(
-        "How much does a fish weigh?",
-        Answer("answer"),
-        Clarifications(List("question1", "question2", "questionN"))
-      ).map { (response: Either[FailedInteraction, TangibleEitherResponse[Answer, Clarifications]]) =>
-        ???
-      }
-
       for
         response <- tc.expectJsonEither(
-          "How much does a fish weigh?",
-          Answer("answer"),
-          Clarifications(List("question", "question"))
-        )
-        _ = response.foreach(r => println(r.value))
+                      "How much does a fish weigh?",
+                      Answer("answer"),
+                      Clarifications(List("question", "question"))
+                    )
+        _         = response.foreach(r => println(r.value))
       yield ()
     }
