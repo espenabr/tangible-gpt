@@ -5,7 +5,7 @@ val http4sVersion = "1.0.0-M40"
 val circeVersion  = "0.14.6"
 
 lazy val root = (project in file(".")).settings(
-  name := "gpt-chat-semiautomation",
+  name := "tangible-gpt",
   libraryDependencies ++= Seq(
     "org.typelevel" %% "cats-effect"         % "3.5.4",
     "org.typelevel" %% "cats-effect-kernel"  % "3.5.4",
