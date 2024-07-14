@@ -8,7 +8,7 @@ const seaAnimalColumn: Column = {
     name: "Sea animal",
 };
 const animalTypeColumn: Column = {
-    columnType: "SingleChoiceColumn",
+    columnType: "EnumColumn",
     name: "Type",
     options: ["Fish", "Shellfish", "Jellyfish"],
 };

@@ -182,7 +182,7 @@ const describeColumn = (c: Column) => {
             return `${c.name}: Number (any number including decimal)`;
         case "TextColumn":
             return `${c.name}: String`;
-        case "SingleChoiceColumn":
+        case "EnumColumn":
             return `${c.name}: One of the following (others are unacceptable): ${
                 c.options.join(", ")
             }`;
@@ -281,7 +281,7 @@ const parseTable = (columns: Column[], s: string): Table | null => {
                         ? toNumberCell(parsedNumber, column)
                         : null;
                 }
-                case "SingleChoiceColumn": {
+                case "EnumColumn": {
                     const parsedSingleChoice = parseSingleChoice(
                         part,
                         column.options,
@@ -1133,7 +1133,7 @@ ${table.columns.map(describeColumn).join("\n")}`;
         ).then((r) => {
             const value = parseTable(table.columns, r.value);
             if (value !== null) {
-                return success(value, r.rawMessage, r.history);
+                return success(table, r.rawMessage, r.history);
             } else {
                 const reason = "Could not parse table";
                 return failure(reason, r.rawMessage, r.history);

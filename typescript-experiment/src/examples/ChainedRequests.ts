@@ -26,6 +26,7 @@ const response = await tc.expectJson(
                     description: "<description>",
                     difficulty1To10: 5,
                 },
+                r.history
             );
         } else {
             return r;

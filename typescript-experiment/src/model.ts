@@ -95,8 +95,8 @@ type NumberColumn = {
     name: string;
 };
 
-type SingleChoiceColumn = {
-    columnType: "SingleChoiceColumn";
+type EnumColumn = {
+    columnType: "EnumColumn";
     name: string;
     options: string[];
 };
@@ -105,7 +105,7 @@ export type Column =
     | TextColumn
     | BooleanColumn
     | NumberColumn
-    | SingleChoiceColumn;
+    | EnumColumn;
 
 export type TextCell = {
     cellType: "TextCell";
