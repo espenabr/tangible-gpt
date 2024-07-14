@@ -4,15 +4,15 @@ import { tangibleClient } from "./common.ts";
 const tc = tangibleClient();
 
 const columns: Column[] = [
-    { columnType: "TextColumn", name: "Name" },
+    { type: "TextColumn", name: "Name" },
     {
-        columnType: "SingleChoiceColumn",
+        type: "EnumColumn",
         name: "Animal",
         options: ["Duck", "Goose", "Mouse", "Dog", "Cow"],
     },
-    { columnType: "TextColumn", name: "Occupation" },
-    { columnType: "TextColumn", name: "Personality" },
-    { columnType: "BooleanColumn", name: "Is old" },
+    { type: "TextColumn", name: "Occupation" },
+    { type: "TextColumn", name: "Personality" },
+    { type: "BooleanColumn", name: "Is old" },
 ];
 
 const response = await tc.expectTable(

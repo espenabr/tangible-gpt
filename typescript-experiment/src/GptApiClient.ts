@@ -118,7 +118,15 @@ class GptApiClient {
                 body: JSON.stringify(body),
             },
         ).then((response) => {
-            return response.json();
+            if (response.ok) {
+                return response.json();
+            } else {
+                return Promise.reject(
+                    new Error(
+                        `${response.status.toString()} ${response.statusText}`,
+                    ),
+                );
+            }
         });
     };
 }

@@ -4,11 +4,11 @@ import { tangibleClient } from "./common.ts";
 const tc = tangibleClient();
 
 const seaAnimalColumn: Column = {
-    columnType: "TextColumn",
+    type: "TextColumn",
     name: "Sea animal",
 };
 const animalTypeColumn: Column = {
-    columnType: "EnumColumn",
+    type: "EnumColumn",
     name: "Type",
     options: ["Fish", "Shellfish", "Jellyfish"],
 };
@@ -20,9 +20,9 @@ const originalTable: Table = {
     rows: [
         {
             cells: [
-                { cellType: "TextCell", value: "Cod", column: seaAnimalColumn },
+                { type: "TextCell", value: "Cod", column: seaAnimalColumn },
                 {
-                    cellType: "SingleChoiceCell",
+                    type: "EnumCell",
                     value: "Fish",
                     column: animalTypeColumn,
                 },
@@ -31,12 +31,12 @@ const originalTable: Table = {
         {
             cells: [
                 {
-                    cellType: "TextCell",
+                    type: "TextCell",
                     value: "Salmon",
                     column: seaAnimalColumn,
                 },
                 {
-                    cellType: "SingleChoiceCell",
+                    type: "EnumCell",
                     value: "Fish",
                     column: animalTypeColumn,
                 },
@@ -45,12 +45,12 @@ const originalTable: Table = {
         {
             cells: [
                 {
-                    cellType: "TextCell",
+                    type: "TextCell",
                     value: "Crab",
                     column: seaAnimalColumn,
                 },
                 {
-                    cellType: "SingleChoiceCell",
+                    type: "EnumCell",
                     value: "Shellfish",
                     column: animalTypeColumn,
                 },
@@ -59,12 +59,12 @@ const originalTable: Table = {
         {
             cells: [
                 {
-                    cellType: "TextCell",
+                    type: "TextCell",
                     value: "Lobster",
                     column: seaAnimalColumn,
                 },
                 {
-                    cellType: "SingleChoiceCell",
+                    type: "EnumCell",
                     value: "Shellfish",
                     column: animalTypeColumn,
                 },
@@ -74,7 +74,7 @@ const originalTable: Table = {
 };
 
 const addedColumnResponse = await tc.expectTableWithAddedColumn(
-    { columnType: "NumberColumn", name: "Average weight" },
+    { type: "NumberColumn", name: "Average weight" },
     "Average weight (kg)",
     originalTable,
 );

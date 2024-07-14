@@ -19,7 +19,7 @@ import {
     Param,
     ReasoningStrategy,
     Row,
-    SingleChoiceCell,
+    EnumCell,
     Table,
     TangibleOptionResponse,
     TangibleOptionResponseSuccess,
@@ -130,14 +130,14 @@ const serializeRow = (row: Row): string =>
     row.cells.map(serializeCell).join(";");
 
 const serializeCell = (cell: Cell): string => {
-    switch (cell.cellType) {
+    switch (cell.type) {
         case "TextCell":
             return cell.value;
         case "BooleanCell":
             return cell.value ? "true" : "false";
         case "NumberCell":
             return cell.value.toString();
-        case "SingleChoiceCell":
+        case "EnumCell":
             return cell.value;
     }
 };
@@ -151,31 +151,31 @@ const renderTable = (table: Table) => {
 };
 
 const toBooleanCell = (b: boolean, column: Column): BooleanCell => ({
-    cellType: "BooleanCell",
+    type: "BooleanCell",
     column: column,
     value: b,
 });
 
 const toNumberCell = (n: number, column: Column): NumberCell => ({
-    cellType: "NumberCell",
+    type: "NumberCell",
     column: column,
     value: n,
 });
 
-const toSingleChoiceCell = (s: string, column: Column): SingleChoiceCell => ({
-    cellType: "SingleChoiceCell",
+const toSingleChoiceCell = (s: string, column: Column): EnumCell => ({
+    type: "EnumCell",
     column: column,
     value: s,
 });
 
 const toTextCell = (s: string, column: Column): TextCell => ({
-    cellType: "TextCell",
+    type: "TextCell",
     column: column,
     value: s,
 });
 
 const describeColumn = (c: Column) => {
-    switch (c.columnType) {
+    switch (c.type) {
         case "BooleanColumn":
             return `${c.name}: Boolean (true or false)`;
         case "NumberColumn":
@@ -261,7 +261,7 @@ const parseTable = (columns: Column[], s: string): Table | null => {
         const parts = line.split(";").map(withoutQuotes).map((p) => p.trim());
         const cells: (Cell | null)[] = columns.map((column, idx) => {
             const part = parts[idx];
-            switch (column.columnType) {
+            switch (column.type) {
                 case "BooleanColumn": {
                     const parsedBoolean = parseBoolean(part);
 

@@ -81,22 +81,22 @@ export type TangibleEitherResponse<L, R> = {
 };
 
 type TextColumn = {
-    columnType: "TextColumn";
+    type: "TextColumn";
     name: string;
 };
 
 type BooleanColumn = {
-    columnType: "BooleanColumn";
+    type: "BooleanColumn";
     name: string;
 };
 
 type NumberColumn = {
-    columnType: "NumberColumn";
+    type: "NumberColumn";
     name: string;
 };
 
 type EnumColumn = {
-    columnType: "EnumColumn";
+    type: "EnumColumn";
     name: string;
     options: string[];
 };
@@ -108,30 +108,30 @@ export type Column =
     | EnumColumn;
 
 export type TextCell = {
-    cellType: "TextCell";
+    type: "TextCell";
     value: string;
     column: Column;
 };
 
 export type BooleanCell = {
-    cellType: "BooleanCell";
+    type: "BooleanCell";
     value: boolean;
     column: Column;
 };
 
 export type NumberCell = {
-    cellType: "NumberCell";
+    type: "NumberCell";
     value: number;
     column: Column;
 };
 
-export type SingleChoiceCell = {
-    cellType: "SingleChoiceCell";
+export type EnumCell = {
+    type: "EnumCell";
     value: string;
     column: Column;
 };
 
-export type Cell = TextCell | BooleanCell | NumberCell | SingleChoiceCell;
+export type Cell = TextCell | BooleanCell | NumberCell | EnumCell;
 
 export type Row = {
     cells: Cell[];
