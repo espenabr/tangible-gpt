@@ -56,14 +56,8 @@ const initialPrompt = (
     }
 };
 
-// dirty business
-const mapToObject = (map: Map<string, Property>): any => {
-    const obj: any = {};
-    map.forEach((value, key) => {
-        obj[key] = value;
-    });
-    return obj;
-};
+const mapToObject = (map: Map<string, Property>): { [k: string]: Property } => 
+    Object.fromEntries(map.entries());
 
 const toPropertyType = (param: Param): PropertyType => {
     switch (param.type) {
@@ -371,9 +365,13 @@ class TangibleClient {
 
         return this.gptApiClient.chatCompletion(messages)
             .then((response) => {
+                console.log(response);
+
                 const lastChoice = last(response.choices);
+
                 if (lastChoice !== null) {
                     const reply = lastChoice.message;
+
                     return success(
                         reply.content,
                         reply.content,
@@ -1070,23 +1068,22 @@ ${columns.map(describeColumn).join("\n")}`;
     ): Promise<TangibleResponse<Table>> => {
         const prompt = `${renderTable(table)}
     
-    Expand this table with another column:
-    ${describeColumn(columnToAdd)}
+Expand this table with another column:
+${describeColumn(columnToAdd)}
     
-    ${intention}`;
+${intention}`;
 
         const resultColumns = table.columns.concat(columnToAdd);
 
         const responseFormatDescription =
             `The response must be in CSV format (semicolon separated) with columns: ${
                 resultColumns.map((c) => c.name).join(";")
-            }
-No header row, just data
+            } header row, just data
 
 Columns:
 ${resultColumns.map(describeColumn).join("\n")}`;
 
-        return this.interact(
+    return this.interact(
             initialPrompt(reasoningStrategy, prompt, responseFormatDescription),
             history,
             functionCalls,
@@ -1095,7 +1092,7 @@ ${resultColumns.map(describeColumn).join("\n")}`;
         ).then((r) => {
             const value = parseTable(resultColumns, r.value);
             if (value !== null) {
-                return success(table, r.rawMessage, r.history);
+                return success(value, r.rawMessage, r.history);
             } else {
                 const reason = "Could not parse table";
                 return failure(reason, r.rawMessage, r.history);
@@ -1136,7 +1133,7 @@ ${table.columns.map(describeColumn).join("\n")}`;
         ).then((r) => {
             const value = parseTable(table.columns, r.value);
             if (value !== null) {
-                return success(table, r.rawMessage, r.history);
+                return success(value, r.rawMessage, r.history);
             } else {
                 const reason = "Could not parse table";
                 return failure(reason, r.rawMessage, r.history);

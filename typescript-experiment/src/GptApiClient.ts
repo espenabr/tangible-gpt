@@ -49,7 +49,7 @@ export type Property = {
 
 export type Parameters = {
     type: "object";
-    properties: Map<string, Property>;
+    properties: { [k: string]: Property };
 };
 
 type RequestFunction = {

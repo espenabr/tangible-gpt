@@ -23,7 +23,7 @@ const originalTable: Table = {
                 { cellType: "TextCell", value: "Cod", column: seaAnimalColumn },
                 {
                     cellType: "SingleChoiceCell",
-                    value: "FIsh",
+                    value: "Fish",
                     column: animalTypeColumn,
                 },
             ],
@@ -82,10 +82,10 @@ if (addedColumnResponse.outcome === "Success") {
     console.log(addedColumnResponse.value);
 }
 
-const addedRowResponse = await tc.expectTableWithAddedRow(
-    originalTable,
-    "Another random sea animal",
-);
-if (addedRowResponse.outcome === "Success") {
-    console.log(addedRowResponse.value);
-}
+//const addedRowResponse = await tc.expectTableWithAddedRow(
+//    originalTable,
+//    "Another random sea animal",
+//);
+//if (addedRowResponse.outcome === "Success") {
+//    console.log(addedRowResponse.value);
+//}
