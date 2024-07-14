@@ -54,7 +54,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
     def encodeToJson(value: R): String = value.asJson.noSpaces
 
     val responseFormatDescription =
-      s"""The response must be in valid JSON and only JSON, nothing else
+      s"""The response must be valid JSON and only JSON, nothing else
          |
          |Example:
          |${encodeToJson(example)}""".stripMargin
@@ -378,7 +378,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
 
       def toResponse(value: Set[T]) = TangibleResponse(value, content, r.history)
       val splitted: Set[String]     = content.split(",").toList.map(_.toLowerCase.strip).toSet
-      val allSelectionsValid        = splitted.forall { o => options.exists(_.toString === o) }
+      val allSelectionsValid        = splitted.forall { o => options.exists(_.toString.toLowerCase() === o) }
       val result                    = options.filter { o => splitted.exists(_ === o.toString.toLowerCase) }.toSet
 
       if allSelectionsValid then Right(toResponse(result))
@@ -399,7 +399,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
         s"""I want you to put some items into different groups.
            |
            |These groups are: ${gn.mkString(", ")}
-           |${groupingCriteria.map(gc => s"Items should be grouped by the following criteria: $gc")}
+           |${groupingCriteria.map(gc => s"Items should be grouped by the following criteria: $gc").getOrElse("")}
            |
            |Here are the items that should be distributed in the right groups:
            |
@@ -407,7 +407,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       case None     =>
         s"""I want you to put some items into different groups.
            |Make up some sensible names for these groups.
-           |${groupingCriteria.map(gc => s"Items should be grouped by the following criteria: $gc")}
+           |${groupingCriteria.map(gc => s"Items should be grouped by the following criteria: $gc").getOrElse("")}
            |
            |Here are the items that should be distributed in the right groups:
            |
@@ -505,7 +505,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
   ): F[Either[FailedInteraction, TangibleResponse[List[String]]]] =
     val prompt =
       s"""I have a list of items that I need to filter.
-         |Only include the items that adhere to the following predicate: $predicate
+         |Only include the items where the following is true: $predicate
          |
          |The items are:
          |${items.mkString("\n")}""".stripMargin
@@ -576,7 +576,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
          |No header row, just data
          |
          |Columns:
-         |${table.columns.map(describeColumn).mkString("\n")}""".stripMargin
+         |${resultColumns.map(describeColumn).mkString("\n")}""".stripMargin
 
     interact(
       initialPrompt(reasoningStrategy, prompt, Some(responseFormatDescription)),
@@ -586,7 +586,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
       Some(responseFormatDescription),
       withFollowupQuestions
     ).map { r =>
-      parseTable(table.columns :+ columnToAdd)(r.value)
+      parseTable(resultColumns)(r.value)
         .map { parsed => Right(TangibleResponse(parsed, r.rawMessage, r.history)) }
         .getOrElse {
           Left(ParseError(r.rawMessage, r.history))
@@ -608,7 +608,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
          |$rowDescription""".stripMargin
 
     val responseFormatDescription =
-      s"""The response must be CSV format (semicolon separated) with columns: ${table.columns.map(_.name).mkString(";")}
+      s"""The response must be in CSV format (semicolon separated) with columns: ${table.columns.map(_.name).mkString(";")}
          |No header row, just data
          |
          |Columns:
@@ -807,7 +807,7 @@ class TangibleClient[F[_]: Concurrent](gptApiClient: GptApiClient[F]):
           responseFormatDescription
             .map(rfd => s"""Pick the best answer.
                              |
-                             |$responseFormatDescription""".stripMargin)
+                             |$rfd""".stripMargin)
             .getOrElse("Pick the best answer."),
           response.history
         )

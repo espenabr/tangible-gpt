@@ -150,7 +150,7 @@ object GptApiClient:
         Json.obj(
           "type"        := "string",
           "description" := description,
-          "num"         := _enum
+          "enum"        := _enum
         )
       case IntegerProperty(description)     =>
         Json.obj(
