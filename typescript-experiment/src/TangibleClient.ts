@@ -12,6 +12,7 @@ import {
     BooleanCell,
     Cell,
     Column,
+    EnumCell,
     FunctionCall,
     ItemGroup,
     JSONSerializable,
@@ -19,7 +20,6 @@ import {
     Param,
     ReasoningStrategy,
     Row,
-    EnumCell,
     Table,
     TangibleOptionResponse,
     TangibleOptionResponseSuccess,
@@ -56,7 +56,7 @@ const initialPrompt = (
     }
 };
 
-const mapToObject = (map: Map<string, Property>): { [k: string]: Property } => 
+const mapToObject = (map: Map<string, Property>): { [k: string]: Property } =>
     Object.fromEntries(map.entries());
 
 const toPropertyType = (param: Param): PropertyType => {
@@ -78,15 +78,13 @@ const functionCallTools = <I = string, O = string>(
     functionCalls: FunctionCall<I, O>[],
 ): Tool[] => {
     return functionCalls.map((fc) => {
-        const propertyMap = new Map<string, Property>();
-        fc.params.forEach((p) => {
+        const properties: [string, Property][] = fc.params.map((p) => {
             const propertyType = toPropertyType(p);
-            propertyMap.set(
-                p.name,
-                p.type === "enum"
-                    ? { type: propertyType, description: p.name, enum: p.enum }
-                    : { type: propertyType, description: p.name },
-            );
+            const property: Property = p.type === "enum"
+                ? { type: propertyType, description: p.name, enum: p.enum }
+                : { type: propertyType, description: p.name };
+
+            return [p.name, property];
         });
 
         return {
@@ -96,7 +94,7 @@ const functionCallTools = <I = string, O = string>(
                 description: fc.description,
                 parameters: {
                     type: "object",
-                    properties: mapToObject(propertyMap),
+                    properties: mapToObject(new Map(properties)),
                 },
             },
         };
@@ -1083,7 +1081,7 @@ ${intention}`;
 Columns:
 ${resultColumns.map(describeColumn).join("\n")}`;
 
-    return this.interact(
+        return this.interact(
             initialPrompt(reasoningStrategy, prompt, responseFormatDescription),
             history,
             functionCalls,
