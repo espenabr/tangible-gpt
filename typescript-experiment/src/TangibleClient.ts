@@ -363,8 +363,6 @@ class TangibleClient {
 
         return this.gptApiClient.chatCompletion(messages)
             .then((response) => {
-                console.log(response);
-
                 const lastChoice = last(response.choices);
 
                 if (lastChoice !== null) {
